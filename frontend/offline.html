@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrackMyTrain — Offline</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;background:#0f172a;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center}
+  .icon{font-size:5rem;margin-bottom:1.5rem;animation:float 3s ease-in-out infinite}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+  h1{font-size:1.8rem;font-weight:800;margin-bottom:.5rem;color:#f1f5f9}
+  p{font-size:.95rem;color:#94a3b8;line-height:1.6;max-width:340px;margin:.5rem auto 2rem}
+  .status-box{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:1.25rem 1.75rem;margin-bottom:2rem;width:100%;max-width:360px}
+  .status-row{display:flex;justify-content:space-between;align-items:center;padding:.45rem 0;font-size:.85rem;border-bottom:1px solid #334155}
+  .status-row:last-child{border-bottom:none}
+  .status-label{color:#64748b}
+  .status-val{font-weight:600}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:.4rem}
+  .dot-red{background:#dc2626}.dot-yellow{background:#eab308}.dot-green{background:#16a34a}
+  .retry-btn{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:12px;padding:.85rem 2rem;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s;width:100%;max-width:360px}
+  .retry-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(37,99,235,.4)}
+  .cached-hint{margin-top:1.25rem;font-size:.78rem;color:#475569}
+  .cached-hint a{color:#60a5fa;text-decoration:none;cursor:pointer}
+  .brand{position:absolute;top:1.5rem;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1rem;color:#f1f5f9;white-space:nowrap}
+  .brand-icon{background:#2563eb;width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+  #networkStatus{transition:.3s}
+</style>
+</head>
+<body>
+
+<div class="brand">
+  <div class="brand-icon">T</div>
+  TrackMyTrain
+</div>
+
+<div class="icon">🚆</div>
+<h1>You're Offline</h1>
+<p>No internet connection right now. Your last viewed trains and bookings are still available from cache.</p>
+
+<div class="status-box">
+  <div class="status-row">
+    <span class="status-label">Internet</span>
+    <span class="status-val" id="networkStatus"><span class="dot dot-red"></span>Disconnected</span>
+  </div>
+  <div class="status-row">
+    <span class="status-label">Cached Trains</span>
+    <span class="status-val" id="cachedTrains"><span class="dot dot-yellow"></span>Checking...</span>
+  </div>
+  <div class="status-row">
+    <span class="status-label">Cached Bookings</span>
+    <span class="status-val" id="cachedBookings"><span class="dot dot-yellow"></span>Checking...</span>
+  </div>
+</div>
+
+<button class="retry-btn" onclick="retryConnection()">🔄 Retry Connection</button>
+
+<p class="cached-hint">
+  When back online everything syncs automatically. <br>
+  <a onclick="goHome()">→ Try loading cached home screen</a>
+</p>
+
+<script>
+  function retryConnection() {
+    if (navigator.onLine) {
+      window.location.href = '/';
+    } else {
+      document.getElementById('networkStatus').innerHTML = '<span class="dot dot-red"></span>Still Offline';
+      setTimeout(() => {
+        document.getElementById('networkStatus').innerHTML = '<span class="dot dot-red"></span>Disconnected';
+      }, 2000);
+    }
+  }
+
+  function goHome() {
+    window.location.href = '/';
+  }
+
+  // Check caches
+  async function checkCaches() {
+    if ('caches' in window) {
+      const cache = await caches.open('trackmytrain-v10');
+      const trainReq = await cache.match('/api/trains');
+      const bookingReq = await cache.match('/api/auth/bookings');
+      document.getElementById('cachedTrains').innerHTML = trainReq
+        ? '<span class="dot dot-green"></span>Available'
+        : '<span class="dot dot-red"></span>Not cached';
+      document.getElementById('cachedBookings').innerHTML = bookingReq
+        ? '<span class="dot dot-green"></span>Available'
+        : '<span class="dot dot-red"></span>Not cached';
+    }
+  }
+  checkCaches();
+
+  // Auto-redirect when back online
+  window.addEventListener('online', () => {
+    document.getElementById('networkStatus').innerHTML = '<span class="dot dot-green"></span>Back Online!';
+    setTimeout(() => window.location.href = '/', 1000);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,2442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="TrackMyTrain - Live Indian Railway tracking, seat booking and station food court.">
+<meta name="theme-color" content="#0f172a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TrackMyTrain">
+<meta name="application-name" content="TrackMyTrain">
+<meta name="msapplication-TileColor" content="#0f172a">
+<meta name="msapplication-TileImage" content="/icons/icon-144.png">
+<!-- Open Graph -->
+<meta property="og:title" content="TrackMyTrain — Indian Railways">
+<meta property="og:description" content="Live train tracking, seat booking, and station food court.">
+<meta property="og:type" content="website">
+<title>TrackMyTrain - Indian Railways</title>
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+<!-- Apple Touch Icons -->
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-144.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+<!-- Apple Splash Screen -->
+<link rel="apple-touch-startup-image" href="/icons/splash.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=2">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#0f172a;--navy-light:#1e293b;--orange:#2563eb;--orange-dark:#1d4ed8;--blue:#2563eb;--green:#16a34a;--red:#dc2626;--bg:#fafafa;--card:#fff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0;--radius:12px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-left:env(safe-area-inset-left,0px);
+  --safe-right:env(safe-area-inset-right,0px);
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+  padding-top:var(--safe-top);padding-bottom:var(--safe-bottom);
+  padding-left:var(--safe-left);padding-right:var(--safe-right);
+}
+/* ─── PWA INSTALL BANNER ─── */
+#pwaInstallBanner{display:none;background:linear-gradient(135deg,#0f172a,#1e3a5f);color:#fff;padding:.75rem 1rem;border-radius:12px;margin:.75rem 0;align-items:center;gap:.75rem;box-shadow:0 4px 20px rgba(0,0,0,.2);animation:slideDown .4s ease}
+#pwaInstallBanner.show{display:flex}
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.pwa-banner-icon{font-size:1.8rem;flex-shrink:0}
+.pwa-banner-text{flex:1}
+.pwa-banner-title{font-weight:700;font-size:.88rem}
+.pwa-banner-sub{font-size:.72rem;opacity:.75;margin-top:.1rem}
+.pwa-install-btn{background:#2563eb;color:#fff;border:none;border-radius:8px;padding:.45rem .9rem;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
+.pwa-install-btn:hover{background:#1d4ed8}
+.pwa-dismiss-btn{background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:1.1rem;flex-shrink:0;width:auto}
+/* Topbar install pill */
+#installTopbarBtn{display:none;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:20px;padding:.35rem .8rem;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit;align-items:center;gap:.35rem;transition:.2s}
+#installTopbarBtn.show{display:flex}
+#installTopbarBtn:hover{transform:scale(1.05)}
+/* Offline badge */
+#swUpdateBanner{display:none;background:#fde68a;color:#92400e;text-align:center;padding:.45rem;font-size:.8rem;font-weight:600;cursor:pointer}
+#swUpdateBanner.show{display:block}
+.screen{display:none}.screen.active{display:block}
+
+/* ─── TOP BAR ─── */
+.topbar{background:#fff;padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between;color:var(--text);position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,0,0,.04)}
+.topbar-brand{display:flex;align-items:center;gap:.6rem;font-size:1.3rem;font-weight:800;color:var(--navy)}
+.topbar-brand .brand-icon {background:var(--orange);color:#fff;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.topbar-right{display:flex;align-items:center;gap:1.5rem}
+.topbar-btn{background:none;border:1px solid var(--border);color:var(--text);padding:.4rem .85rem;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;font-family:inherit;display:flex;align-items:center;gap:.4rem;transition:.2s;}
+.topbar-btn:hover{background:#f8fafc;border-color:var(--orange);color:var(--orange)}
+.topbar-btn.sos{background:var(--red);border-color:var(--red);color:#fff;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.notif-wrap{position:relative;cursor:pointer;font-size:1.2rem}
+.notif-dot{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:.65rem;width:18px;height:18px;border-radius:50%;display:none;align-items:center;justify-content:center;font-weight:700}
+
+/* ─── HERO MAIN ─── */
+.hero-section{text-align:center;padding:4.5rem 1rem 4rem;background:radial-gradient(circle at top, #eef2ff 0%, var(--bg) 70%);border-radius:24px;margin-bottom:2rem;position:relative}
+.hero-title{font-size:3.5rem;font-weight:900;color:var(--navy);line-height:1.15;margin-bottom:1rem;letter-spacing:-0.03em}
+.hero-title-hi{color:var(--orange);font-style:italic}
+.hero-subtitle{font-size:1.05rem;color:var(--muted);line-height:1.6;max-width:600px;margin:0 auto 3rem}
+.hero-search-card{background:#fff;border-radius:100px;display:inline-flex;padding:.5rem;box-shadow:0 12px 32px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.04);border:1px solid #f1f5f9;align-items:center;gap:.5rem;white-space:nowrap;overflow:hidden;max-width:100%}
+.h-input-group{display:flex;flex-direction:column;align-items:flex-start;padding:0 1.5rem;min-width:200px}
+.h-input-group label{font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem}
+.h-input-wrap{display:flex;align-items:center;gap:.5rem;width:100%}
+.h-input-wrap input{border:none;outline:none;font-size:1rem;font-family:inherit;font-weight:600;color:var(--text);width:100%;background:transparent}
+.h-input-wrap input::placeholder{color:#cbd5e1;font-weight:500}
+.h-divider{width:1px;height:40px;background:var(--border)}
+.hero-btn{background:var(--orange);color:#fff;border:none;border-radius:50px;padding:1rem 2rem;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;white-space:nowrap;box-shadow:0 4px 14px rgba(37,99,235,.3);margin-left:.5rem}
+.hero-btn:hover{background:var(--orange-dark);transform:translateY(-1px)}
+
+/* ─── AUTH ─── */
+.auth-page{min-height:100vh;background:radial-gradient(circle at top, #eef2ff 0%, var(--bg) 100%);display:flex;align-items:center;justify-content:center;padding:2rem}
+.auth-box{background:#fff;border-radius:24px;width:100%;max-width:440px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.08);border:1px solid #f1f5f9}
+.auth-header{background:#fff;padding:2rem 1.5rem 1rem;text-align:center;color:var(--navy)}
+.auth-header h1{font-size:1.8rem;margin-bottom:.3rem;font-weight:900}
+.auth-header h1 span{color:var(--orange)}
+.auth-header p{font-size:.85rem;opacity:.7}
+.auth-tabs{display:flex;border-bottom:2px solid var(--border)}
+.auth-tab{flex:1;padding:.85rem;text-align:center;cursor:pointer;font-weight:600;font-size:.9rem;background:#f8fafc;transition:.2s;border:none;font-family:inherit;color:var(--muted)}
+.auth-tab.active{background:#fff;color:var(--orange);border-bottom:3px solid var(--orange);margin-bottom:-2px}
+.auth-body{padding:1.5rem}
+.auth-body .fg{margin-bottom:1rem}
+.auth-body label{display:block;font-size:.82rem;font-weight:600;margin-bottom:.35rem;color:var(--text)}
+.auth-body input{width:100%;padding:.65rem .8rem;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;transition:.2s}
+.auth-body input:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(249,115,22,.12)}
+.auth-submit{width:100%;padding:.75rem;background:linear-gradient(135deg,var(--orange),var(--orange-dark));color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.auth-submit:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(249,115,22,.4)}
+.demo-creds{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.75rem;margin-top:1rem;font-size:.78rem;color:#92400e}
+.demo-creds strong{color:var(--orange-dark)}
+.auth-toggle{text-align:center;margin-top:.8rem;font-size:.85rem;color:var(--muted)}
+.auth-toggle a{color:var(--orange);cursor:pointer;font-weight:600;text-decoration:none}
+
+/* ─── LAYOUT ─── */
+.app-layout{display:flex;min-height:calc(100vh - 64px)}
+.sidebar{width:220px;background:#fff;border-right:1px solid var(--border);padding:1rem 0;flex-shrink:0}
+.sidebar-item{display:flex;align-items:center;gap:.75rem;padding:.85rem 1.5rem;cursor:pointer;font-size:.92rem;font-weight:500;color:var(--muted);transition:.15s;border-left:3px solid transparent}
+.sidebar-item:hover{background:#f8fafc;color:var(--text)}
+.sidebar-item.active{background:#eff6ff;color:var(--orange);border-left-color:var(--orange);font-weight:600}
+.sidebar-item .icon{font-size:1.1rem}
+.main-content{flex:1;padding:2rem;overflow-y:auto;max-height:calc(100vh - 64px)}
+
+/* ─── CARDS / SEARCH ─── */
+.section-title{font-size:1.3rem;font-weight:700;margin-bottom:1rem;color:var(--navy);display:flex;align-items:center;gap:.5rem}
+.search-bar{display:flex;gap:.75rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.search-bar input{flex:1;min-width:160px;padding:.7rem 1rem;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit}
+.search-bar input:focus{border-color:var(--orange);outline:none}
+.btn{padding:.7rem 1.5rem;border:none;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s;width:auto}
+.btn-primary{background:var(--orange);color:#fff}.btn-primary:hover{background:var(--orange-dark)}
+.btn-navy{background:var(--navy);color:#fff}.btn-navy:hover{background:var(--navy-light)}
+.btn-outline{background:none;border:1.5px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--orange);color:var(--orange)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-sm{padding:.45rem .9rem;font-size:.8rem}
+
+.train-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:1rem}
+.train-card{background:#fff;border:1px solid var(--border);border-left:4px solid var(--orange);border-radius:var(--radius);padding:1.1rem;cursor:pointer;transition:.2s}
+.train-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.08);transform:translateY(-2px)}
+.tc-top{display:flex;justify-content:space-between;align-items:start;margin-bottom:.5rem}
+.tc-num{font-weight:700;color:var(--navy);font-size:1.05rem}
+.tc-status{padding:.2rem .6rem;border-radius:20px;font-size:.72rem;font-weight:600}
+.st-Running{background:#dcfce7;color:#166534}.st-Delayed{background:#fef3c7;color:#92400e}.st-Cancelled{background:#fecaca;color:#991b1b}.st-Scheduled{background:#e0e7ff;color:#3730a3}
+.tc-name{font-weight:600;font-size:.9rem;margin-bottom:.6rem}
+.tc-route{display:flex;align-items:center;gap:.75rem;margin:.7rem 0;font-weight:500;font-size:.88rem}
+.tc-route .arrow{color:var(--orange);font-weight:700}
+.tc-meta{display:flex;gap:1.5rem;font-size:.8rem;color:var(--muted);padding-top:.6rem;border-top:1px solid var(--border)}
+.tc-save{width:100%;margin-top:.75rem;padding:.55rem;background:var(--navy);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:.82rem;font-family:inherit}
+
+/* ─── DETAILS / MAP ─── */
+.detail-card{background:#fff;border-radius:var(--radius);padding:1.5rem;margin-bottom:1rem;border:1px solid var(--border)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin:.75rem 0}
+.dg-item{font-size:.85rem}.dg-label{font-weight:600;color:var(--navy);font-size:.78rem;margin-bottom:.15rem}
+.info-box{background:var(--navy);color:#fff;padding:1rem;border-radius:8px;text-align:center}
+.info-box .label{font-size:.75rem;opacity:.8}.info-box .val{font-size:1.1rem;font-weight:700;margin-top:.3rem}
+.map-canvas{width:100%;height:380px;border-radius:8px;margin:.75rem 0;z-index:1;position:relative}
+.leaflet-pane{z-index:1!important}.leaflet-top,.leaflet-bottom{z-index:2!important}
+.train-popup .leaflet-popup-content-wrapper{background:var(--navy);color:#fff;border-radius:10px;border:2px solid var(--orange);box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.train-popup .leaflet-popup-tip{background:var(--navy)}
+.train-popup .leaflet-popup-content{font-family:'Inter',sans-serif;font-size:.82rem;margin:.6rem .8rem}
+.station-popup .leaflet-popup-content-wrapper{background:#fff;border-radius:10px;border:2px solid var(--border)}
+.station-popup .leaflet-popup-content{font-family:'Inter',sans-serif;font-size:.82rem;margin:.6rem .8rem}
+/* Live train info strip */
+.live-strip{display:flex;gap:.75rem;background:#0f172a;border-radius:8px;padding:.75rem 1rem;margin:.5rem 0;color:#fff;font-size:.8rem;flex-wrap:wrap}
+.live-item{display:flex;flex-direction:column;gap:.15rem}.live-label{opacity:.6;font-size:.7rem;text-transform:uppercase;letter-spacing:.03em}.live-val{font-weight:700;font-size:.92rem}
+.live-val.green{color:#4ade80}.live-val.red{color:#f87171}.live-val.orange{color:#fb923c}
+/* Station stop list */
+.stops-list{display:flex;flex-direction:column;gap:0;margin:.75rem 0}
+.stop-item{display:flex;align-items:center;gap:.65rem;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.82rem}
+.stop-item:last-child{border-bottom:none}
+.stop-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;border:2px solid #fff}
+.stop-done{background:#16a34a}.stop-current{background:#f97316;animation:pulse 1.5s infinite}.stop-upcoming{background:#cbd5e1}
+.stop-food{position:relative}.stop-food::after{content:'🍽️';position:absolute;top:-8px;right:-8px;font-size:.7rem}
+
+/* ─── SEATS ─── */
+.seat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.4rem;max-width:500px}
+.seat-btn{padding:.55rem .2rem;border-radius:4px;border:2px solid transparent;cursor:pointer;font-weight:700;font-size:.72rem;color:#fff;font-family:inherit;transition:.1s}
+.seat-btn.avail{background:var(--green)}.seat-btn.booked{background:var(--red);opacity:.5;cursor:not-allowed}.seat-btn.selected{background:#eab308;border-color:#a16207}
+.legend{display:flex;gap:1.5rem;margin:1rem 0;font-size:.8rem;align-items:center}
+.legend-dot{width:18px;height:18px;border-radius:3px;display:inline-block;vertical-align:middle;margin-right:.35rem}
+.coach-tabs{display:flex;gap:.4rem;overflow-x:auto;margin:1rem 0;padding-bottom:.4rem}
+.coach-tab{padding:.4rem .9rem;border-radius:6px;border:none;cursor:pointer;font-weight:600;font-size:.8rem;font-family:inherit;background:#e2e8f0;color:var(--text)}.coach-tab.active{background:var(--navy);color:#fff}
+
+/* ─── NOTIF / PROFILE ─── */
+.notif-item{background:#fff;border-left:4px solid var(--orange);padding:.85rem;border-radius:8px;margin-bottom:.6rem;border:1px solid var(--border);font-size:.88rem}
+.notif-item.delay{border-left-color:var(--red)}.notif-item.arrival{border-left-color:var(--green)}
+.notif-time{font-size:.72rem;color:var(--muted);margin-top:.3rem}
+.prof-header{background:linear-gradient(135deg,var(--navy),var(--navy-light));color:#fff;padding:2rem;border-radius:var(--radius);text-align:center;margin-bottom:1rem}
+.prof-avatar{font-size:2.5rem;margin-bottom:.5rem}
+.prof-name{font-size:1.2rem;font-weight:700}.prof-email{font-size:.85rem;opacity:.8}
+.prof-section{background:#fff;padding:1.25rem;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:.75rem}
+.prof-section h3{font-size:.95rem;color:var(--navy);margin-bottom:.75rem}
+
+/* ─── SOS MODAL ─── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;width:90%;max-width:480px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.modal-head{background:var(--red);color:#fff;padding:1.2rem;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:1.1rem}
+.modal-close{background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;width:auto}
+.modal-body{padding:1.5rem}
+.sos-btn{width:100%;padding:1rem;border:none;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:.75rem;display:flex;align-items:center;gap:.75rem;transition:.15s}
+.sos-btn:hover{transform:translateY(-1px)}
+/* ─── LOGOUT MODAL ─── */
+.logout-modal .modal{max-width:380px}
+.logout-modal .modal-head{background:var(--navy)}
+.logout-modal .logout-btns{display:flex;gap:.75rem;margin-top:1.25rem}
+.logout-modal .logout-btns button{flex:1;padding:.75rem;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;border:none;transition:.15s}
+.logout-modal .logout-btns button:hover{transform:translateY(-1px)}
+.logout-modal .btn-cancel{background:#f1f5f9;color:var(--text)}
+.logout-modal .btn-confirm{background:var(--red);color:#fff}
+
+/* ─── TOAST ─── */
+.toast-container{position:fixed;top:65px;right:1rem;z-index:300;display:flex;flex-direction:column;gap:.5rem}
+.toast{background:var(--navy);color:#fff;padding:.75rem 1.25rem;border-radius:8px;font-size:.85rem;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:slideIn .3s ease;max-width:350px;border-left:4px solid var(--orange)}
+.toast.delay-toast{border-left-color:var(--red)}.toast.arrival-toast{border-left-color:var(--green)}
+@keyframes slideIn{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:translateX(0)}}
+
+/* ─── OFFLINE BANNER ─── */
+.offline-banner{display:none;background:#fef3c7;color:#92400e;text-align:center;padding:.5rem;font-size:.82rem;font-weight:600}
+.offline-banner.show{display:block}
+
+/* ─── ADMIN PANEL ─── */
+.stat-card{background:#fff;border-radius:var(--radius);padding:1.25rem;border:1px solid var(--border);text-align:left;position:relative;overflow:hidden;transition:.2s}
+.stat-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.06)}
+.stat-card .num{font-size:1.8rem;font-weight:800;color:var(--navy);margin-bottom:.2rem}
+.stat-card .lbl{font-size:.78rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.stat-card .icon-bg{position:absolute;right:-10px;bottom:-10px;font-size:4rem;opacity:.05;transform:rotate(-15deg)}
+.stat-trend{font-size:.72rem;margin-top:.5rem;display:flex;align-items:center;gap:.3rem}
+.trend-up{color:var(--green)}.trend-down{color:var(--red)}
+
+.admin-dashboard{display:grid;grid-template-columns:2fr 1fr;gap:1.5rem}
+.admin-main-col{display:flex;flex-direction:column;gap:1.5rem}
+.chart-container{background:#fff;border-radius:var(--radius);padding:1.5rem;border:1px solid var(--border)}
+.admin-table-card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
+.admin-table{width:100%;border-collapse:collapse;font-size:.88rem}
+.admin-table th{background:#f8fafc;padding:1rem;text-align:left;font-weight:700;color:var(--navy);border-bottom:1.5px solid var(--border)}
+.admin-table td{padding:1rem;border-bottom:1px solid var(--border)}
+.admin-table tr:last-child td{border-bottom:none}
+.badge-sm{padding:.2rem .5rem;border-radius:6px;font-size:.72rem;font-weight:700}
+.sidebar-sep{height:1px;background:var(--border);margin:.75rem 1.5rem;opacity:.5}
+.sidebar-title{padding:0 1.5rem;font-size:.65rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;margin-top:1rem}
+/* ─── FOOD COURT ─── */
+.food-hero{background:linear-gradient(135deg,#7c2d12,#ea580c,#f97316);border-radius:var(--radius);padding:1.5rem;color:#fff;margin-bottom:1.5rem;position:relative;overflow:hidden}
+.food-hero::before{content:'🍽️';position:absolute;right:1rem;top:50%;transform:translateY(-50%);font-size:5rem;opacity:.15}
+.food-hero h2{font-size:1.5rem;font-weight:800;margin-bottom:.35rem}
+.food-hero p{font-size:.88rem;opacity:.85}
+.food-station-bar{display:flex;gap:.5rem;overflow-x:auto;margin-bottom:1.25rem;padding-bottom:.4rem;scrollbar-width:none}
+.food-station-bar::-webkit-scrollbar{display:none}
+.station-pill{padding:.45rem 1rem;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:.2s;font-family:inherit}
+.station-pill.active{background:var(--orange);color:#fff;border-color:var(--orange)}
+.food-cat-bar{display:flex;gap:.5rem;overflow-x:auto;margin-bottom:1.25rem;padding-bottom:.4rem;scrollbar-width:none}
+.food-cat-bar::-webkit-scrollbar{display:none}
+.cat-pill{padding:.4rem .9rem;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:.2s;font-family:inherit}
+.cat-pill.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.food-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-bottom:1.5rem}
+.food-card{background:#fff;border-radius:12px;border:1px solid var(--border);overflow:hidden;transition:.25s;display:flex;flex-direction:column}
+.food-card:hover{transform:translateY(-4px);box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.food-card-img{height:140px;background:linear-gradient(135deg,#fef3c7,#fed7aa);display:flex;align-items:center;justify-content:center;font-size:4rem;position:relative}
+.food-veg-badge{position:absolute;top:.4rem;right:.4rem;width:18px;height:18px;border-radius:3px;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700}
+.veg-badge{border-color:#16a34a;background:#dcfce7;color:#166534}.nveg-badge{border-color:#dc2626;background:#fecaca;color:#991b1b}
+.food-card-body{padding:.85rem;flex:1;display:flex;flex-direction:column;gap:.35rem}
+.food-card-name{font-weight:700;color:var(--navy);font-size:.95rem}
+.food-card-desc{font-size:.78rem;color:var(--muted);line-height:1.4;flex:1}
+.food-card-meta{display:flex;justify-content:space-between;align-items:center;padding-top:.5rem;border-top:1px solid var(--border)}
+.food-price{font-size:1.05rem;font-weight:800;color:var(--orange)}
+.food-hotel{font-size:.72rem;color:var(--muted);margin-bottom:.25rem}
+.food-tags{display:flex;gap:.3rem;flex-wrap:wrap;margin:.2rem 0}
+.food-tag{background:#fff7ed;color:var(--orange);border-radius:10px;padding:.1rem .45rem;font-size:.67rem;font-weight:600}
+.food-prep{font-size:.72rem;color:var(--muted)}
+.add-to-cart-btn{width:100%;padding:.55rem;background:var(--orange);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit;transition:.15s;margin-top:.5rem}
+.add-to-cart-btn:hover{background:var(--orange-dark);transform:scale(1.02)}
+.add-to-cart-btn:active{transform:scale(.98)}
+/* Cart */
+.cart-panel{position:fixed;right:0;top:56px;bottom:0;width:340px;background:#fff;border-left:1px solid var(--border);z-index:150;transform:translateX(100%);transition:.3s ease;display:flex;flex-direction:column;box-shadow:-4px 0 20px rgba(0,0,0,.1)}
+.cart-panel.open{transform:translateX(0)}
+.cart-head{background:var(--navy);color:#fff;padding:1rem 1.25rem;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:1rem;flex-shrink:0}
+.cart-close{background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;width:auto}
+.cart-items{flex:1;overflow-y:auto;padding:1rem}
+.cart-item{display:flex;justify-content:space-between;align-items:center;padding:.65rem 0;border-bottom:1px solid var(--border)}
+.ci-name{font-size:.88rem;font-weight:600;color:var(--text)}
+.ci-price{font-size:.82rem;color:var(--orange);font-weight:700}
+.ci-qty{display:flex;align-items:center;gap:.5rem;margin-top:.2rem}
+.qty-btn{width:24px;height:24px;border:1px solid var(--border);border-radius:4px;background:#f8fafc;cursor:pointer;font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.qty-btn:hover{background:var(--orange);color:#fff;border-color:var(--orange)}
+.cart-footer{padding:1rem;border-top:1px solid var(--border);flex-shrink:0}
+.cart-total{display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem;margin-bottom:.75rem;color:var(--navy)}
+.checkout-btn{width:100%;padding:.8rem;background:linear-gradient(135deg,var(--orange),var(--orange-dark));color:#fff;border:none;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.checkout-btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(249,115,22,.4)}
+.cart-fab{position:fixed;bottom:2rem;right:2rem;background:linear-gradient(135deg,var(--orange),var(--orange-dark));color:#fff;border:none;border-radius:50px;padding:.75rem 1.25rem;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px rgba(249,115,22,.5);z-index:100;display:none;align-items:center;gap:.5rem;transition:.2s}
+.cart-fab:hover{transform:scale(1.05)}
+.cart-fab-count{background:#fff;color:var(--orange);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800}
+/* Order Modal */
+.order-modal-body{padding:1.5rem}
+.order-step{display:flex;align-items:center;gap:.75rem;padding:.75rem 0;border-bottom:1px solid var(--border)}
+.order-step:last-child{border-bottom:none}
+.os-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
+.os-dot.done{background:#dcfce7}.os-dot.active{background:#fff7ed;animation:pulse 1.5s infinite}
+.os-dot.pending{background:#f1f5f9}
+.os-label{font-weight:600;font-size:.88rem}.os-time{font-size:.75rem;color:var(--muted)}
+
+/* ─── DIGITAL TICKET MODAL ─── */
+.ticket-overlay{display:none;position:fixed;inset:0;background:rgba(10,15,30,.75);backdrop-filter:blur(6px);z-index:500;align-items:center;justify-content:center;padding:1rem}
+.ticket-overlay.show{display:flex}
+.ticket-wrap{background:transparent;display:flex;flex-direction:column;align-items:center;gap:.75rem;width:100%;max-width:480px}
+.ticket-actions{display:flex;gap:.75rem;width:100%}
+.ticket-actions button{flex:1;padding:.7rem;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.ticket-dl-btn{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.4)}
+.ticket-dl-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(37,99,235,.5)}
+.ticket-close-btn{background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25)!important}
+.ticket-close-btn:hover{background:rgba(255,255,255,.2)}
+/* The actual ticket card */
+#ticketCard{width:100%;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);font-family:'Inter',sans-serif}
+.tk-header{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#1d4ed8 100%);color:#fff;padding:1.25rem 1.5rem;position:relative;overflow:hidden}
+.tk-header::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.05)}
+.tk-header::after{content:'';position:absolute;bottom:-20px;left:40px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.04)}
+.tk-brand{display:flex;align-items:center;gap:.5rem;font-size:1.05rem;font-weight:800;letter-spacing:-.01em;position:relative}
+.tk-brand-icon{background:#2563eb;width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.tk-pnr-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:.85rem;position:relative}
+.tk-pnr-label{font-size:.62rem;opacity:.6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.2rem}
+.tk-pnr{font-size:1.05rem;font-weight:800;letter-spacing:.06em;font-family:monospace}
+.tk-status-pill{padding:.25rem .7rem;border-radius:20px;font-size:.72rem;font-weight:700;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25)}
+/* Route strip */
+.tk-route{background:#f8fafc;padding:1rem 1.5rem;display:flex;align-items:center;gap:.5rem}
+.tk-city{flex:1}
+.tk-city-name{font-weight:800;font-size:1.15rem;color:#0f172a}
+.tk-city-label{font-size:.68rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-top:.15rem}
+.tk-route-arrow{text-align:center;flex-shrink:0;padding:0 .5rem}
+.tk-route-line{height:2px;background:linear-gradient(90deg,#2563eb,#1d4ed8);border-radius:2px;width:48px;margin:0 auto}
+.tk-route-icon{font-size:1.2rem;display:block;text-align:center;margin-bottom:.15rem}
+/* Perforation tear line */
+.tk-perforation{display:flex;align-items:center;position:relative;margin:0 -1px}
+.tk-perf-circle{width:20px;height:20px;border-radius:50%;background:#f0f4f8;flex-shrink:0;box-shadow:inset 0 0 0 2px #e2e8f0}
+.tk-perf-line{flex:1;border-top:2.5px dashed #cbd5e1;margin:0 .25rem}
+.tk-perf-text{font-size:.62rem;color:#94a3b8;white-space:nowrap;padding:0 .5rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+/* Main body */
+.tk-body{padding:1rem 1.5rem}
+.tk-info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6rem;margin-bottom:.85rem}
+.tk-info-item{background:#f8fafc;border-radius:8px;padding:.5rem .6rem}
+.tk-info-label{font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:.2rem}
+.tk-info-val{font-size:.82rem;font-weight:700;color:#0f172a}
+/* Seat strip */
+.tk-seats-title{font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:.4rem}
+.tk-seat-tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.85rem}
+.tk-seat-tag{background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:8px;padding:.3rem .65rem;font-size:.8rem;font-weight:700;font-family:monospace}
+/* Fare strip */
+.tk-fare-row{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff;border-radius:10px;padding:.65rem 1rem;margin-bottom:.85rem}
+.tk-fare-label{font-size:.72rem;opacity:.7;text-transform:uppercase;letter-spacing:.04em}
+.tk-fare-amt{font-size:1.2rem;font-weight:800;color:#60a5fa}
+/* QR + barcode */
+.tk-bottom{display:flex;align-items:center;gap:1rem}
+.tk-qr{width:72px;height:72px;flex-shrink:0}
+.tk-qr svg{width:100%;height:100%}
+.tk-barcode-wrap{flex:1}
+.tk-barcode{height:40px;display:flex;gap:1.5px;align-items:flex-end}
+.tk-barcode-bar{background:#1e293b;border-radius:1px}
+.tk-barcode-num{font-size:.58rem;color:#94a3b8;text-align:center;margin-top:.3rem;font-family:monospace;letter-spacing:.04em}
+.tk-footer-note{font-size:.62rem;color:#94a3b8;margin-top:.45rem;line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="offline-banner" id="offlineBanner">⚠️ You are offline — showing cached data</div>
+<div id="swUpdateBanner" onclick="applySwUpdate()">🔄 New version available — tap to update</div>
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ═══════ AUTH SCREEN ═══════ -->
+<div id="authScreen" class="screen active">
+<div class="auth-page">
+<div class="auth-box">
+  <div class="auth-header"><h1>🚆 Track<span>My</span>Train</h1><p>Indian Railway Live Tracking</p></div>
+  <!-- PWA Install Banner (shown when browser supports install) -->
+  <div id="pwaInstallBanner">
+    <div class="pwa-banner-icon">📱</div>
+    <div class="pwa-banner-text">
+      <div class="pwa-banner-title">Install TrackMyTrain App</div>
+      <div class="pwa-banner-sub">Add to home screen — works offline, no app store needed</div>
+    </div>
+    <button class="pwa-install-btn" onclick="triggerPWAInstall()">Install</button>
+    <button class="pwa-dismiss-btn" onclick="dismissPWABanner()" title="Dismiss">✕</button>
+  </div>
+  <div class="auth-tabs">
+    <button class="auth-tab active" onclick="setAuthTab('user')">👤 User Login</button>
+    <button class="auth-tab" onclick="setAuthTab('admin')">🛡️ Admin Login</button>
+  </div>
+  <div class="auth-body">
+    <div id="nameField" class="fg" style="display:none"><label>Full Name</label><input id="fullName" placeholder="Enter your name"></div>
+    <div class="fg"><label>Email</label><input type="email" id="email" placeholder="your@email.com" required></div>
+    <div class="fg"><label>Password</label><input type="password" id="password" placeholder="••••••••" required></div>
+    <button class="auth-submit" onclick="handleAuth()">Sign In</button>
+    <div class="demo-creds" id="demoCreds">
+      <strong>Demo Credentials:</strong><br>
+      <span id="credsText">Email: <b>user@demo.com</b> &nbsp;|&nbsp; Password: <b>User@123</b></span><br>
+      <button class="btn btn-sm btn-primary" style="margin-top:.5rem" onclick="fillDemo()">⚡ Auto-Fill</button>
+    </div>
+    <div class="auth-toggle" id="authToggle">Don't have an account? <a onclick="toggleRegister()">Sign Up</a></div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ═══════ MAIN APP ═══════ -->
+<div id="appScreen" class="screen">
+<div class="topbar">
+  <div class="topbar-brand"><div class="brand-icon">T</div> TrackMyTrain</div>
+  <div class="topbar-right">
+    <button id="installTopbarBtn" onclick="triggerPWAInstall()" title="Install app">📱 Install</button>
+    <button class="topbar-btn sos" onclick="openSOS()">🚨 SOS</button>
+    <div class="notif-wrap" onclick="navigateTo('notifications')">🔔<div class="notif-dot" id="notifDot"></div></div>
+    <div style="cursor:pointer;font-size:1.2rem;background:#f1f5f9;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center" onclick="navigateTo('profile')">👤</div>
+  </div>
+</div>
+
+<div class="app-layout">
+<div class="sidebar">
+  <!-- USER SECTION -->
+  <div id="userSidebarSection">
+    <div class="sidebar-item" data-nav="home" onclick="navigateTo('home')"><span class="icon">🏠</span> Home</div>
+    <div class="sidebar-item" data-nav="saved" onclick="navigateTo('saved')"><span class="icon">⭐</span> Saved</div>
+    <div class="sidebar-item" data-nav="bookings" onclick="navigateTo('bookings')"><span class="icon">🎟️</span> My Bookings</div>
+    <div class="sidebar-item" data-nav="notifications" onclick="navigateTo('notifications')"><span class="icon">🔔</span> Alerts</div>
+    <div class="sidebar-item" data-nav="food" onclick="navigateTo('food')"><span class="icon">🍽️</span> Food Court</div>
+  </div>
+  
+  <!-- ADMIN SECTION -->
+  <div id="adminSidebarSection" style="display:none">
+    <div class="sidebar-title">Admin Management</div>
+    <div class="sidebar-item" data-nav="admin" onclick="navigateTo('admin')"><span class="icon">📊</span> Dashboard</div>
+    <div class="sidebar-item" data-nav="admin-trains" onclick="navigateTo('admin-trains')"><span class="icon">🚆</span> Fleet Control</div>
+    <div class="sidebar-item" data-nav="admin-revenue" onclick="navigateTo('admin-revenue')"><span class="icon">💰</span> Revenue</div>
+  </div>
+
+  <div class="sidebar-sep"></div>
+  <div class="sidebar-item" data-nav="profile" onclick="navigateTo('profile')"><span class="icon">👤</span> Profile</div>
+  <div class="sidebar-item" onclick="openLogoutModal()"><span class="icon">🚪</span> Logout</div>
+</div>
+
+<div class="main-content">
+<!-- HOME -->
+<div id="pg-home" class="page active" style="display:block">
+  <div class="hero-section">
+    <h1 class="hero-title">Travel Smarter,<br><span class="hero-title-hi">Track Better.</span></h1>
+    <p class="hero-subtitle">Premium train tracking and booking platform. Real-time live status,<br>secure bookings, and elite comfort.</p>
+    
+    <div class="hero-search-card">
+      <div class="h-input-group">
+        <label>ORIGIN</label>
+        <div class="h-input-wrap">
+          <span class="h-icon" style="color:#ef4444;font-size:1.2rem">📍</span>
+          <input id="srcInput" placeholder="Where from?">
+        </div>
+      </div>
+      <div class="h-divider"></div>
+      <div class="h-input-group">
+        <label>DESTINATION</label>
+        <div class="h-input-wrap">
+          <span class="h-icon" style="color:var(--navy);font-size:1.2rem">🏁</span>
+          <input id="dstInput" placeholder="Where to?">
+        </div>
+      </div>
+      <button class="hero-btn" onclick="searchTrains()">Find Trains &rarr;</button>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <div class="section-title" style="margin-bottom:0">🚂 Available Trains</div>
+    <button class="btn btn-outline btn-sm" onclick="loadTrains()">Show All</button>
+  </div>
+  <div class="train-grid" id="trainsList"></div>
+</div>
+
+<!-- DETAIL -->
+<div id="pg-detail" class="page" style="display:none"></div>
+
+<!-- SEATS -->
+<div id="pg-seats" class="page" style="display:none">
+  <div class="section-title">🪑 Select Seats</div>
+  <div id="seatStats" class="detail-grid" style="margin-bottom:1rem"></div>
+  <div class="coach-tabs" id="coachTabs"></div>
+  <div class="seat-grid" id="seatGrid"></div>
+  <div class="legend"><span><span class="legend-dot" style="background:var(--green)"></span>Available</span><span><span class="legend-dot" style="background:var(--red)"></span>Booked</span><span><span class="legend-dot" style="background:#eab308"></span>Selected</span></div>
+  
+  <div style="margin-top:1.5rem;padding:1rem;border:1px solid var(--border);border-radius:8px">
+    <div style="font-weight:700;color:var(--navy);margin-bottom:.5rem">🍱 Onboard Meal Preference (per seat)</div>
+    <div style="display:flex;gap:1rem;font-size:.9rem">
+      <label style="display:flex;align-items:center;gap:.3rem"><input type="radio" name="onboardFood" value="None" checked onchange="updateSeatSummary()"> None</label>
+      <label style="display:flex;align-items:center;gap:.3rem"><input type="radio" name="onboardFood" value="Veg" onchange="updateSeatSummary()"> Veg (+₹150)</label>
+      <label style="display:flex;align-items:center;gap:.3rem"><input type="radio" name="onboardFood" value="Non-Veg" onchange="updateSeatSummary()"> Non-Veg (+₹200)</label>
+    </div>
+  </div>
+
+  <div id="seatSummary" style="background:#f8fafc;padding:.8rem;border-radius:8px;margin:.75rem 0;font-size:.88rem"></div>
+  <div style="display:flex;gap:.75rem"><button class="btn btn-outline" onclick="clearSeats()">Clear</button><button class="btn btn-primary" onclick="confirmBooking()">Book Now ₹</button></div>
+</div>
+
+<!-- SAVED -->
+<div id="pg-saved" class="page" style="display:none"><div class="section-title">⭐ Saved Trains</div><div id="savedList"></div></div>
+
+<!-- BOOKINGS -->
+<div id="pg-bookings" class="page" style="display:none"><div class="section-title">🎟️ My Bookings</div><div id="bookingsList"></div></div>
+
+<!-- NOTIFICATIONS -->
+<div id="pg-notifications" class="page" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <div class="section-title" style="margin-bottom:0">🔔 Notifications</div>
+    <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red)" onclick="clearAllNotifications()">🗑️ Clear All</button>
+  </div>
+  <div id="notifList"></div>
+</div>
+
+<!-- PROFILE -->
+<div id="pg-profile" class="page" style="display:none"><div id="profileContent"></div></div>
+
+<!-- ADMIN DASHBOARD -->
+<div id="pg-admin" class="page" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+    <div class="section-title" style="margin-bottom:0">📊 Fleet Intelligence Dashboard</div>
+    <div style="font-size:.8rem;color:var(--muted);font-weight:600">Updated: <span id="adminUpdateTime">Just now</span></div>
+  </div>
+  
+  <!-- Stats Cards -->
+  <div class="admin-grid" id="adminStatsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;margin-bottom:1.5rem">
+    <div class="stat-card">
+      <div class="num" id="stat-revenue">₹0</div>
+      <div class="lbl">Total Revenue</div>
+      <div class="stat-trend trend-up">▲ 12% vs last month</div>
+      <div class="icon-bg">💰</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="stat-trains">0</div>
+      <div class="lbl">Active Trains</div>
+      <div class="stat-trend trend-up">🟢 All systems nominal</div>
+      <div class="icon-bg">🚆</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="stat-bookings">0</div>
+      <div class="lbl">Today's Bookings</div>
+      <div class="stat-trend trend-up">▲ 8% from yesterday</div>
+      <div class="icon-bg">🎟️</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="stat-staff">0</div>
+      <div class="lbl">Staff on Duty</div>
+      <div class="stat-trend">🟢 94% attendance</div>
+      <div class="icon-bg">👤</div>
+    </div>
+  </div>
+
+  <div class="admin-dashboard">
+    <div class="admin-main-col">
+      <!-- Revenue Chart -->
+      <div class="chart-container">
+        <div style="font-weight:700;color:var(--navy);margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center">
+            <span>📈 Revenue vs Expenses Trend</span>
+            <select style="font-size:.7rem;padding:.2rem;border-radius:4px;border:1px solid var(--border)">
+                <option>Last 7 Days</option>
+                <option>Last 30 Days</option>
+            </select>
+        </div>
+        <canvas id="revenueChart" height="120"></canvas>
+      </div>
+
+      <!-- Live Operations Table -->
+      <div class="admin-table-card">
+        <div style="padding:1rem;font-weight:700;color:var(--navy);border-bottom:1px solid var(--border)">🚆 Live Fleet Status</div>
+        <div style="overflow-x:auto">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Train Info</th>
+                <th>Current Station</th>
+                <th>Status</th>
+                <th>Occupancy</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="adminLiveTrainsTable">
+              <!-- Filled by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-side-col">
+      <!-- Booking Distribution -->
+      <div class="chart-container" style="margin-bottom:1.5rem">
+        <div style="font-weight:700;color:var(--navy);margin-bottom:1rem">🪑 Class Distribution</div>
+        <canvas id="distributionChart" height="200"></canvas>
+      </div>
+
+      <!-- Staff/Operations Feed -->
+      <div class="admin-table-card">
+        <div style="padding:1rem;font-weight:700;color:var(--navy);border-bottom:1px solid var(--border)">⚡ Operational Alerts</div>
+        <div id="adminAlertsFeed" style="padding:1rem;font-size:.82rem;display:flex;flex-direction:column;gap:.75rem">
+            <div style="padding:.5rem;background:#fff7ed;border-radius:6px;border-left:3px solid var(--orange)">
+                <b>#12042 Shatabdi</b> delayed by 15m at Agra.
+            </div>
+            <div style="padding:.5rem;background:#f0fdf4;border-radius:6px;border-left:3px solid var(--green)">
+                <b>Shift Change:</b> 12 Loco Pilots checked in.
+            </div>
+            <div style="padding:.5rem;background:#fef2f2;border-radius:6px;border-left:3px solid var(--red)">
+                <b>Maintenance:</b> #12432 engine check required.
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FLEET CONTROL -->
+<div id="pg-admin-trains" class="page" style="display:none">
+  <div class="section-title">🚆 Fleet Management & Live Control</div>
+  <div class="admin-table-card">
+    <div style="padding:1rem;font-weight:700;color:var(--navy);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span>Active Fleet Overview</span>
+        <button class="btn btn-sm" onclick="showAddTrainModal()">➕ Add New Train</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Train Number</th>
+            <th>Name</th>
+            <th>Route</th>
+            <th>Current Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="fullFleetTable">
+          <!-- Filled by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- REVENUE ANALYTICS -->
+<div id="pg-admin-revenue" class="page" style="display:none">
+  <div class="section-title">💰 Financial Analytics & Revenue Control</div>
+  <div class="admin-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem;margin-bottom:1.5rem">
+    <div class="chart-container">
+        <div style="font-weight:700;color:var(--navy);margin-bottom:1rem">💹 Monthly Revenue Growth</div>
+        <canvas id="monthlyRevenueChart" height="200"></canvas>
+    </div>
+    <div class="chart-container">
+        <div style="font-weight:700;color:var(--navy);margin-bottom:1rem">🍽️ Service vs Ticket Revenue</div>
+        <canvas id="serviceRevenueChart" height="200"></canvas>
+    </div>
+  </div>
+  <div class="admin-table-card">
+    <div style="padding:1rem;font-weight:700;color:var(--navy);border-bottom:1px solid var(--border)">📜 Recent Transactions</div>
+    <div id="recentTransactionsList" style="padding:1rem">
+        <p style="color:var(--muted);text-align:center">Loading financial records...</p>
+    </div>
+  </div>
+</div>
+
+<!-- FOOD COURT -->
+<div id="pg-food" class="page" style="display:none">
+  <div class="food-hero">
+    <h2>🍽️ Station Food Court</h2>
+    <p>Order delicious food from top-rated hotels near your station — delivered to your train!</p>
+  </div>
+  <!-- Station filter -->
+  <div class="food-station-bar" id="foodStationBar"></div>
+  <!-- Category filter -->
+  <div class="food-cat-bar" id="foodCatBar"></div>
+  <!-- Search bar -->
+  <div style="margin-bottom:1rem;display:flex;gap:.75rem;align-items:center">
+    <input id="foodSearch" placeholder="🔍 Search dishes..." style="flex:1;padding:.65rem 1rem;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit" oninput="filterFoodItems()">
+    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap">
+      <input type="checkbox" id="vegFilter" onchange="filterFoodItems()"> 🌿 Veg Only
+    </label>
+  </div>
+  <!-- Food items grid -->
+  <div class="food-grid" id="foodGrid"></div>
+  <!-- My orders section -->
+  <div id="myOrdersSection" style="display:none">
+    <div class="section-title" style="margin-top:1rem">📦 My Food Orders</div>
+    <div id="myOrdersList"></div>
+  </div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Cart Side Panel -->
+<div class="cart-panel" id="cartPanel">
+  <div class="cart-head">🛒 Your Cart <button class="cart-close" onclick="closeCart()">✕</button></div>
+  <div class="cart-items" id="cartItemsList"><p style="color:var(--muted);text-align:center;padding:2rem">Your cart is empty</p></div>
+  <div class="cart-footer" id="cartFooter" style="display:none">
+    <div class="cart-total"><span>Total</span><span id="cartTotalAmt">₹0</span></div>
+    <div style="margin-bottom:.5rem">
+      <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:.25rem">Select your train (for delivery):</label>
+      <select id="cartTrainSelect" style="width:100%;padding:.5rem;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;font-size:.85rem">
+        <option value="">-- Select Train --</option>
+      </select>
+    </div>
+    <div style="margin-bottom:.75rem">
+      <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:.25rem">Special instructions:</label>
+      <input id="cartNote" placeholder="e.g. Less spicy, extra sauce..." style="width:100%;padding:.45rem .7rem;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;font-size:.82rem">
+    </div>
+    <button class="checkout-btn" onclick="placeCartOrder()">🍽️ Place Order</button>
+  </div>
+</div>
+
+<!-- Cart FAB -->
+<button class="cart-fab" id="cartFab" onclick="openCart()">
+  🛒 Cart <span class="cart-fab-count" id="cartFabCount">0</span>
+</button>
+
+<!-- ═══════ DIGITAL TICKET MODAL ═══════ -->
+<div class="ticket-overlay" id="ticketOverlay" onclick="closeTicket(event)">
+  <div class="ticket-wrap">
+    <div id="ticketCard"><!-- filled by JS --></div>
+    <div class="ticket-actions">
+      <button class="ticket-dl-btn" onclick="downloadTicketPDF()">⬇️ Download PDF Ticket</button>
+      <button class="ticket-close-btn" onclick="closeTicketModal()">✕ Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ LOGOUT MODAL ═══════ -->
+<div class="modal-overlay logout-modal" id="logoutModal">
+<div class="modal">
+  <div class="modal-head">🚪 Logout <button class="modal-close" onclick="closeLogoutModal()">✕</button></div>
+  <div class="modal-body">
+    <p style="font-size:.95rem;color:var(--text);text-align:center">Are you sure you want to logout?</p>
+    <div class="logout-btns">
+      <button class="btn-cancel" onclick="closeLogoutModal()">Cancel</button>
+      <button class="btn-confirm" onclick="confirmLogout()">Yes, Logout</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ SOS MODAL ═══════ -->
+<div class="modal-overlay" id="sosModal">
+<div class="modal">
+  <div class="modal-head">🚨 Emergency SOS<button class="modal-close" onclick="closeSOS()">✕</button></div>
+  <div class="modal-body">
+    <p style="margin-bottom:1rem;color:var(--muted);font-size:.88rem">Use in genuine emergencies only. Your location and train details will be shared.</p>
+    <button class="sos-btn" style="background:#dc2626;color:#fff" onclick="triggerSOS('police')">🚔 Railway Police (RPF) — Dial 182</button>
+    <button class="sos-btn" style="background:#ea580c;color:#fff" onclick="triggerSOS('helpline')">📞 Railway Helpline — Dial 139</button>
+    <button class="sos-btn" style="background:#2563eb;color:#fff" onclick="triggerSOS('medical')">🏥 Medical Emergency — Dial 108</button>
+    <button class="sos-btn" style="background:#7c3aed;color:#fff" onclick="triggerSOS('women')">👩 Women Helpline — Dial 1091</button>
+    <button class="sos-btn" style="background:#059669;color:#fff" onclick="triggerSOS('fire')">🔥 Fire Emergency — Dial 101</button>
+    <div class="detail-card" style="margin-top:1rem">
+      <h4 style="margin-bottom:.5rem;color:var(--red)">📍 Your Current Info</h4>
+      <p style="font-size:.85rem" id="sosInfo">Train info will appear when you're viewing a train.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ JAVASCRIPT ═══════ -->
+<script>
+// ─── OFFLINE ────
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+window.addEventListener('online', () => document.getElementById('offlineBanner').classList.remove('show'));
+window.addEventListener('offline', () => document.getElementById('offlineBanner').classList.add('show'));
+
+// ─── AGGRESSIVE FRESH START ────
+// Immediately wipe session data before any variables are declared or UI is rendered.
+// This ensures that even if a tab is reopened or the browser is restarted, 
+// the user MUST log in again every single time.
+localStorage.removeItem('token');
+localStorage.removeItem('user');
+
+const API = '/api'; 
+let token = null;
+let user = null;
+let authMode = 'login', authRole = 'user';
+let selectedSeats = [], trainSeats = {}, curCoach = '1', curTrainId = null, curTrainData = null;
+let _bookingStore = {}; 
+
+// ─── INIT ────
+window.addEventListener('load', () => {
+  // Ensure we are in a clean state
+  resetAppState();
+  
+  // Force active screen to auth
+  document.getElementById('appScreen').classList.remove('active');
+  document.getElementById('authScreen').classList.add('active');
+  
+  setAuthTab('user');
+  console.log('🚆 TrackMyTrain - Session wiped. Redirected to Login.');
+});
+
+function resetAppState() {
+  // 1. Clear session storage
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  token = null;
+  user = null;
+
+  // 2. Clear global data stores
+  selectedSeats = [];
+  foodCart = [];
+  allFoodItems = [];
+  curTrainId = null;
+  curTrainData = null;
+  _bookingStore = {};
+
+  // 3. Clear UI lists
+  const lists = ['trainsList', 'savedList', 'bookingsList', 'notifList', 'adminLiveTrainsTable', 'recentTransactionsList', 'foodGrid', 'myOrdersList'];
+  lists.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
+
+  // 4. Reset Sidebar sections
+  document.getElementById('adminSidebarSection').style.display = 'none';
+  document.getElementById('userSidebarSection').style.display = 'block';
+
+  // 5. Reset topbar elements
+  const dot = document.getElementById('notifDot');
+  if (dot) { dot.style.display = 'none'; dot.textContent = '0'; }
+  document.getElementById('cartFab').style.display = 'none';
+  document.getElementById('cartPanel').classList.remove('open');
+
+  // 6. Reset forms
+  const inputs = ['email', 'password', 'fullName', 'srcInput', 'dstInput', 'foodSearch'];
+  inputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  // 7. Cleanup Map & Intervals
+  if (leafletMap) { try { leafletMap.remove(); } catch(e){} leafletMap = null; }
+  if (trainMarkerInterval) { clearInterval(trainMarkerInterval); trainMarkerInterval = null; }
+  
+  // 8. Reset charts if they exist
+  if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
+  if (distributionChart) { distributionChart.destroy(); distributionChart = null; }
+  if (monRevChart) { monRevChart.destroy(); monRevChart = null; }
+  if (servRevChart) { servRevChart.destroy(); servRevChart = null; }
+}
+
+// ─── AUTH ────
+function setAuthTab(role) {
+  authRole = role; authMode = 'login';
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', i === (role==='user'?0:1)));
+  document.getElementById('nameField').style.display = 'none';
+  document.getElementById('authToggle').style.display = role === 'admin' ? 'none' : 'block';
+  const ct = document.getElementById('credsText');
+  ct.innerHTML = role==='admin'
+    ? 'Email: <b>admin@demo.com</b> | Password: <b>Admin@123</b>'
+    : 'Email: <b>user@demo.com</b> | Password: <b>User@123</b>';
+}
+
+function fillDemo() {
+  document.getElementById('email').value = authRole==='admin' ? 'admin@demo.com' : 'user@demo.com';
+  document.getElementById('password').value = authRole==='admin' ? 'Admin@123' : 'User@123';
+}
+
+function toggleRegister() {
+  authMode = authMode==='login'?'register':'login';
+  document.getElementById('nameField').style.display = authMode==='register'?'block':'none';
+  document.querySelector('.auth-submit').textContent = authMode==='register'?'Sign Up':'Sign In';
+  document.getElementById('authToggle').innerHTML = authMode==='register'
+    ? 'Already have an account? <a onclick="toggleRegister()">Sign In</a>'
+    : 'Don\'t have an account? <a onclick="toggleRegister()">Sign Up</a>';
+}
+
+async function handleAuth() {
+  const email = document.getElementById('email').value, pwd = document.getElementById('password').value;
+  if (!email||!pwd) return alert('Fill all fields');
+  try {
+    let res;
+    if (authMode==='login') {
+      res = await fetch(`${API}/auth/login`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pwd})});
+    } else {
+      const fn = document.getElementById('fullName').value.trim();
+      if (!fn) return alert('Please enter your full name');
+      const [first, ...rest] = fn.split(' ');
+      const last = rest.join(' ');
+      // Make username unique: emailPrefix + short timestamp to avoid duplicate key errors
+      const uniqueUsername = email.split('@')[0] + '_' + Date.now().toString(36);
+      res = await fetch(`${API}/auth/register`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({email, password:pwd, firstName:first, lastName:last||'', username:uniqueUsername})
+      });
+    }
+    const data = await res.json();
+    if (data.token) {
+      token = data.token;
+      localStorage.setItem('token', token);
+      // Always fetch the fresh, complete profile from the server — never rely on
+      // the partial object returned by login/register which may be stale/incomplete.
+      try {
+        const profileRes = await fetch(`${API}/auth/profile`, {headers:{'Authorization':'Bearer '+token}});
+        const freshUser = await profileRes.json();
+        if (freshUser && freshUser._id) {
+          user = freshUser;
+        } else {
+          // Fallback to whatever the auth response gave us
+          user = data.user;
+        }
+      } catch(pe) {
+        user = data.user; // network error fallback
+      }
+      localStorage.setItem('user', JSON.stringify(user));
+      showApp(); loadTrains(); startNotifPoll();
+    }
+    else alert(data.error || 'Auth failed');
+  } catch(e){ alert('Error: '+e.message); }
+}
+
+function showApp() {
+  document.getElementById('authScreen').classList.remove('active');
+  document.getElementById('appScreen').classList.add('active');
+  
+  if (user && user.role === 'admin') {
+    document.getElementById('adminSidebarSection').style.display = 'block';
+    document.getElementById('userSidebarSection').style.display = 'none';
+    // Hide user-specific topbar tools for admin
+    document.querySelector('.topbar-btn.sos').style.display = 'none';
+    document.querySelector('.notif-wrap').style.display = 'none';
+    navigateTo('admin');
+  } else {
+    document.getElementById('adminSidebarSection').style.display = 'none';
+    document.getElementById('userSidebarSection').style.display = 'block';
+    // Show user-specific topbar tools
+    document.querySelector('.topbar-btn.sos').style.display = 'flex';
+    document.querySelector('.notif-wrap').style.display = 'block';
+    navigateTo('home');
+  }
+}
+
+function openLogoutModal() {
+  document.getElementById('logoutModal').classList.add('show');
+}
+function closeLogoutModal() {
+  document.getElementById('logoutModal').classList.remove('show');
+}
+function confirmLogout() {
+  closeLogoutModal();
+  resetAppState();
+  // Switch screens
+  document.getElementById('appScreen').classList.remove('active');
+  document.getElementById('authScreen').classList.add('active');
+  setAuthTab('user');
+}
+// Keep old name as alias for the profile button
+function logout() { openLogoutModal(); }
+
+// ─── NAV ────
+function navigateTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.style.display='none');
+  const el = document.getElementById('pg-'+page);
+  if (el) el.style.display='block';
+  document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+  const si = document.querySelector(`[data-nav="${page}"]`);
+  if (si) si.classList.add('active');
+  if (page==='profile') loadProfile();
+  if (page==='notifications') loadNotifications();
+  if (page==='admin') loadAdmin();
+  if (page==='admin-trains') loadAdminTrains();
+  if (page==='admin-revenue') loadAdminRevenue();
+  if (page==='saved') loadSavedTrains();
+  if (page==='bookings') loadBookings();
+  if (page==='food') loadFoodCourt();
+}
+
+// ─── TRAINS ────
+async function loadTrains() {
+  try {
+    const r = await fetch(`${API}/trains`); const d = await r.json(); displayTrains(d);
+  } catch(e) { document.getElementById('trainsList').innerHTML='<p style="color:var(--muted)">Failed to load</p>'; }
+}
+async function searchTrains() {
+  const s=document.getElementById('srcInput').value, d=document.getElementById('dstInput').value;
+  if (!s&&!d) return loadTrains();
+  try {
+    const r = await fetch(`${API}/trains/search?source=${s}&destination=${d}`); const data = await r.json(); displayTrains(data);
+  } catch(e){ alert('Search failed'); }
+}
+function displayTrains(trains) {
+  const c = document.getElementById('trainsList');
+  if (!trains.length) { c.innerHTML='<p style="color:var(--muted);grid-column:1/-1;text-align:center;padding:2rem">🚫 No trains found</p>'; return; }
+  c.innerHTML = trains.map(t => `
+    <div class="train-card" onclick="showDetail('${t._id}')">
+      <div class="tc-top"><div class="tc-num">#${t.trainNumber}</div><div class="tc-status st-${t.status}">${t.status}</div></div>
+      <div class="tc-name">${t.trainName}</div>
+      <div class="tc-route"><span>${t.source}</span><span class="arrow">→</span><span>${t.destination}</span></div>
+      <div class="tc-meta"><span>🚄 ${t.trainType}</span><span>⏱️ ${t.delayMinutes}m delay</span></div>
+      <button class="tc-save" onclick="event.stopPropagation();saveTrain('${t._id}')">⭐ Save Train</button>
+    </div>`).join('');
+}
+
+async function saveTrain(id) {
+  try { await fetch(`${API}/trains/${id}/save`,{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}}); alert('Saved!'); } catch(e){}
+}
+
+async function loadSavedTrains() {
+  try {
+    const r = await fetch(`${API}/trains/user/saved`, {headers:{'Authorization':'Bearer '+token}});
+    const trains = await r.json();
+    const c = document.getElementById('savedList');
+    if (!trains.length) { c.innerHTML='<p style="color:var(--muted);text-align:center;padding:2rem">🚫 No saved trains yet</p>'; return; }
+    c.innerHTML = '<div class="train-grid">' + trains.map(t => `
+      <div class="train-card" onclick="showDetail('${t._id}')">
+        <div class="tc-top"><div class="tc-num">#${t.trainNumber}</div><div class="tc-status st-${t.status}">${t.status}</div></div>
+        <div class="tc-name">${t.trainName}</div>
+        <div class="tc-route"><span>${t.source}</span><span class="arrow">→</span><span>${t.destination}</span></div>
+        <div class="tc-meta" style="margin-bottom:.5rem"><span>🚄 ${t.trainType}</span><span>⏱️ ${t.delayMinutes}m delay</span></div>
+      </div>`).join('') + '</div>';
+  } catch(e) {}
+}
+
+async function cancelMyBooking(seatId) {
+  if (!confirm('Are you sure you want to cancel this ticket?')) return;
+  try {
+    const res = await fetch(`${API}/seats/${seatId}/cancel`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+    const data = await res.json();
+    if (res.ok) { showToast('Ticket Cancelled!', 'info'); loadBookings(); updateBadge(); } 
+    else { alert(data.error || 'Failed to cancel'); }
+  } catch(e) { alert('Request failed'); }
+}
+
+async function deleteMyBooking(seatId) {
+  if (!confirm('Remove this train from your history?')) return;
+  try {
+    const res = await fetch(`${API}/auth/bookings/${seatId}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+    if (res.ok) { showToast('History Cleared!', 'info'); loadBookings(); }
+  } catch(e) {}
+}
+
+async function loadBookings() {
+  try {
+    const r = await fetch(`${API}/auth/bookings`, {headers:{'Authorization':'Bearer '+token}});
+    const bs = await r.json();
+    const c = document.getElementById('bookingsList');
+    if (!bs || !bs.length) { c.innerHTML='<p style="color:var(--muted);text-align:center;padding:2rem">🎟️ No active bookings</p>'; return; }
+
+    // ── Group seats by bookingRef (if present) or by trainId+date proximity ──
+    // This makes multi-seat bookings appear as a single card (like a movie theatre)
+    const groups = {};
+    bs.forEach(b => {
+      if (!b.trainId) return;
+      // Use bookingRef as the key if available, else fall back to trainId + date (day)
+      const dateKey = b.bookedDate ? new Date(b.bookedDate).toDateString() : 'unknown';
+      const key = (b.bookingRef && b.bookingRef !== '') ? b.bookingRef : `${b.trainId._id}_${dateKey}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(b);
+    });
+
+    const cards = Object.entries(groups).map(([key, seats], groupIdx) => {
+      const first = seats[0];
+      const t = first.trainId;
+      if (!t) return '';
+      const totalFare = seats.reduce((s, b) => s + (b.fare || 0) + (b.foodFare || 0), 0);
+      const seatNums = seats.map(b => b.seatNumber).join(', ');
+      const pnr = first.bookingRef || key;
+      // Overall booking status: if any cancelled → show mixed, else use first
+      const statuses = [...new Set(seats.map(b => b.status || 'Confirmed'))];
+      const overallStatus = statuses.length === 1 ? statuses[0] : 'Mixed';
+      const statusColor = overallStatus === 'Confirmed' ? 'green' : overallStatus === 'Cancelled' ? 'red' : overallStatus === 'Mixed' ? 'orange' : 'orange';
+      const mealPref = first.onboardFood && first.onboardFood !== 'None' ? first.onboardFood : null;
+      const allCancelled = seats.every(b => (b.status || 'Confirmed') === 'Cancelled');
+
+      // Store booking data safely for the ticket modal (no JSON in HTML attrs)
+      _bookingStore[groupIdx] = {
+        seats,
+        train: {
+          trainName: t.trainName,
+          trainNumber: t.trainNumber,
+          source: t.source,
+          destination: t.destination,
+          status: t.status,
+          trainType: t.trainType || 'Express',
+          delayMinutes: t.delayMinutes || 0
+        }
+      };
+      // Seat rows for multi-seat display
+      const seatRows = seats.map(b => {
+        const st = b.status || 'Confirmed';
+        const sc = st === 'Confirmed' ? '#16a34a' : st === 'Cancelled' ? '#dc2626' : '#f97316';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:.3rem .5rem;background:#f8fafc;border-radius:6px;margin:.2rem 0;font-size:.82rem">
+          <span style="font-weight:700">🪑 ${b.seatNumber}</span>
+          <span style="font-weight:600;color:${sc}">${st}</span>
+          ${st !== 'Cancelled' ? `<button class="btn btn-sm" onclick="event.stopPropagation();cancelMyBooking('${b.seatId}')" style="padding:.2rem .5rem;background:none;border:1px solid #dc2626;color:#dc2626;border-radius:5px;font-size:.72rem">Cancel</button>` : `<button class="btn btn-sm" onclick="event.stopPropagation();deleteMyBooking('${b.seatId}')" style="padding:.2rem .5rem;background:none;border:1px solid #94a3b8;color:#94a3b8;border-radius:5px;font-size:.72rem">Remove</button>`}
+        </div>`;
+      }).join('');
+
+      return `
+      <div class="detail-card" style="margin-bottom:0;cursor:pointer" onclick="showDetail('${t._id}', true)">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:.6rem;margin-bottom:.6rem">
+          <div>
+            <div style="font-weight:800;color:var(--navy);font-size:1rem">🚂 ${t.trainName} <span style="font-size:.78rem;font-weight:500;color:var(--muted)">(#${t.trainNumber})</span></div>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.15rem">PNR: <b style="color:var(--navy);letter-spacing:.04em">${pnr}</b></div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:700;font-size:.85rem;color:var(--${statusColor})">${overallStatus === 'Confirmed' ? '✅' : overallStatus === 'Cancelled' ? '❌' : '⚠️'} ${overallStatus}</div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:.1rem">${seats.length} seat${seats.length > 1 ? 's' : ''}</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--text);margin-bottom:.6rem">
+          <div>📍 <b>${t.source}</b> → <b>${t.destination}</b></div>
+          <div style="color:var(--orange);font-weight:700">₹${totalFare}</div>
+        </div>
+        ${mealPref ? `<div style="font-size:.78rem;background:#f0fdf4;color:#15803d;border-radius:5px;padding:.3rem .6rem;display:inline-block;margin-bottom:.5rem">🍱 ${mealPref} Meal included</div>` : ''}
+        <!-- Individual seat rows -->
+        <div style="margin:.4rem 0">${seatRows}</div>
+        <div style="background:#f8fafc;padding:.5rem;border-radius:6px;font-size:.8rem;display:flex;gap:1rem;flex-wrap:wrap;margin-top:.4rem">
+          <span><b>Live:</b> <span class="st-${t.status}" style="padding:.15rem .4rem;border-radius:4px">${t.status}</span></span>
+          ${t.currentStation ? `<span>📍 ${t.currentStation}</span>` : ''}
+          ${t.delayMinutes > 0 ? `<span style="color:var(--red)">⏱️ +${t.delayMinutes}m delay</span>` : '<span style="color:#16a34a">✅ On Time</span>'}
+        </div>
+        <!-- ── Group-level actions (new) ── -->
+        <div style="display:flex;gap:.6rem;margin-top:.85rem;flex-wrap:wrap" onclick="event.stopPropagation()">
+          <button onclick="event.stopPropagation();showTicket(${groupIdx})" style="flex:1;padding:.6rem .75rem;background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">🎫 View Ticket</button>
+          ${!allCancelled
+            ? `<button onclick="event.stopPropagation();cancelGroupBooking([${seats.filter(b=>(b.status||'Confirmed')!=='Cancelled').map(b=>`'${b.seatId}'`).join(',')}])" style="flex:1;padding:.6rem .75rem;background:#fef2f2;color:#dc2626;border:1.5px solid #fca5a5;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">🚫 Cancel All Tickets</button>`
+            : ''}
+          ${allCancelled
+            ? `<button onclick="event.stopPropagation();deleteGroupBooking([${seats.map(b=>`'${b.seatId}'`).join(',')}])" style="flex:1;padding:.6rem .75rem;background:#f8fafc;color:#64748b;border:1.5px solid #cbd5e1;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">🗑️ Delete Entire Booking</button>`
+            : ''}
+        </div>
+      </div>`;
+    });
+
+    c.innerHTML = '<div style="display:flex;flex-direction:column;gap:1rem;">' + cards.join('') + '</div>';
+  } catch(e) { console.error(e); }
+}
+
+// ═══════════════════════════════════════════════════
+// ─── DIGITAL TICKET GENERATOR ───────────────────────
+// ═══════════════════════════════════════════════════
+let _ticketSeats = null, _ticketTrain = null;
+
+function generateQRSVG(text) {
+  // Deterministic QR-like grid from text hash
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  const cells = 11;
+  const size = 72;
+  const cell = size / cells;
+  let rects = '';
+  // Fixed finder patterns
+  [[0,0],[0,cells-3],[cells-3,0]].forEach(([r,c]) => {
+    rects += `<rect x="${c*cell}" y="${r*cell}" width="${3*cell}" height="${3*cell}" fill="#0f172a"/>`;
+    rects += `<rect x="${c*cell+cell*.5}" y="${r*cell+cell*.5}" width="${2*cell}" height="${2*cell}" fill="#fff"/>`;
+    rects += `<rect x="${c*cell+cell}" y="${r*cell+cell}" width="${cell}" height="${cell}" fill="#0f172a"/>`;
+  });
+  // Data cells
+  for (let r = 0; r < cells; r++) {
+    for (let c = 0; c < cells; c++) {
+      if ((r<4&&c<4)||(r<4&&c>cells-5)||(r>cells-5&&c<4)) continue;
+      const bit = (hash >> ((r * cells + c) % 32)) & 1;
+      if (bit) rects += `<rect x="${c*cell+.5}" y="${r*cell+.5}" width="${cell-.5}" height="${cell-.5}" rx=".5" fill="#0f172a"/>`;
+    }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" style="border:2px solid #e2e8f0;border-radius:6px;background:#fff">${rects}</svg>`;
+}
+
+function generateBarcodeSVG(text) {
+  let hash = 5381;
+  for (let i = 0; i < text.length; i++) hash = ((hash << 5) + hash + text.charCodeAt(i)) >>> 0;
+  const bars = [];
+  for (let i = 0; i < 42; i++) {
+    const bit = (hash >> (i % 32)) & 1;
+    const w = bit ? 3 : 1.5;
+    const h = bit ? 40 : 28;
+    bars.push(`<rect x="${bars.reduce((s,b)=>s+parseFloat(b.match(/width="([^"]+)"/)[1])+1.5, 0)}" y="${40-h}" width="${w}" height="${h}" rx=".5" fill="#1e293b"/>`);
+  }
+  const totalW = bars.reduce((s,b)=>s+parseFloat(b.match(/width="([^"]+)"/)[1])+1.5, 0);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalW} 40" style="width:100%;height:40px">${bars.join('')}</svg>`;
+}
+
+function showTicket(groupIdx) {
+  const entry = _bookingStore[groupIdx];
+  if (!entry) return;
+  const seats = entry.seats;
+  const train = entry.train;
+  _ticketSeats = seats;
+  _ticketTrain = train;
+  const pnr = seats[0]?.bookingRef || ('PNR' + Date.now().toString(36).toUpperCase());
+  const bookedDate = seats[0]?.bookedDate ? new Date(seats[0].bookedDate) : new Date();
+  const dateStr = bookedDate.toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'});
+  const timeStr = bookedDate.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'});
+  const totalFare = seats.reduce((s,b) => s + (b.fare||0) + (b.foodFare||0), 0);
+  const baseFare = seats.reduce((s,b) => s + (b.fare||0), 0);
+  const foodFare = seats.reduce((s,b) => s + (b.foodFare||0), 0);
+  const mealPref = seats[0]?.onboardFood && seats[0].onboardFood !== 'None' ? seats[0].onboardFood : null;
+  const overallStatus = [...new Set(seats.map(b => b.status||'Confirmed'))].length === 1
+    ? (seats[0].status||'Confirmed') : 'Mixed';
+  const userName = (user?.firstName || '') + ' ' + (user?.lastName || '');
+  const seatClass = seats[0]?.seatNumber?.split('-')[0] <= 4 ? 'General'
+    : seats[0]?.seatNumber?.split('-')[0] <= 8 ? 'AC' : 'Sleeper';
+
+  const statusColor = overallStatus === 'Confirmed' ? '#16a34a' : overallStatus === 'Cancelled' ? '#dc2626' : '#f97316';
+
+  document.getElementById('ticketCard').innerHTML = `
+    <!-- Header -->
+    <div class="tk-header">
+      <div class="tk-brand">
+        <div class="tk-brand-icon">T</div>
+        TrackMyTrain &nbsp;<span style="opacity:.5;font-weight:400">|</span>&nbsp; <span style="font-weight:400;font-size:.85rem;opacity:.8">Indian Railways</span>
+      </div>
+      <div class="tk-pnr-row">
+        <div>
+          <div class="tk-pnr-label">PNR Number</div>
+          <div class="tk-pnr">${pnr}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="tk-pnr-label">Booking Date</div>
+          <div style="font-size:.82rem;font-weight:600;opacity:.9">${dateStr}</div>
+          <div style="font-size:.72rem;opacity:.6">${timeStr}</div>
+        </div>
+      </div>
+      <div style="margin-top:.75rem;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:.78rem;opacity:.7">👤 ${userName.trim() || user?.email || 'Passenger'}</div>
+        <span class="tk-status-pill" style="background:${statusColor}22;border-color:${statusColor}55;color:#fff">${overallStatus === 'Confirmed' ? '✅' : overallStatus === 'Cancelled' ? '❌' : '⚠️'} ${overallStatus}</span>
+      </div>
+    </div>
+
+    <!-- Route -->
+    <div class="tk-route">
+      <div class="tk-city">
+        <div class="tk-city-name">${train.source?.split(' (')[0] || 'Origin'}</div>
+        <div class="tk-city-label">From</div>
+      </div>
+      <div class="tk-route-arrow">
+        <span class="tk-route-icon">🚆</span>
+        <div class="tk-route-line"></div>
+        <div style="font-size:.6rem;color:#64748b;text-align:center;margin-top:.25rem">${train.trainType||'Express'}</div>
+      </div>
+      <div class="tk-city" style="text-align:right">
+        <div class="tk-city-name">${train.destination?.split(' (')[0] || 'Destination'}</div>
+        <div class="tk-city-label">To</div>
+      </div>
+    </div>
+
+    <!-- Perforation -->
+    <div class="tk-perforation">
+      <div class="tk-perf-circle" style="margin-left:-10px"></div>
+      <div class="tk-perf-line"></div>
+      <div class="tk-perf-text">✂ Tear Here</div>
+      <div class="tk-perf-line"></div>
+      <div class="tk-perf-circle" style="margin-right:-10px"></div>
+    </div>
+
+    <!-- Body -->
+    <div class="tk-body">
+      <div class="tk-info-grid">
+        <div class="tk-info-item">
+          <div class="tk-info-label">Train No.</div>
+          <div class="tk-info-val">#${train.trainNumber}</div>
+        </div>
+        <div class="tk-info-item">
+          <div class="tk-info-label">Class</div>
+          <div class="tk-info-val">${seatClass}</div>
+        </div>
+        <div class="tk-info-item">
+          <div class="tk-info-label">Passengers</div>
+          <div class="tk-info-val">${seats.length}</div>
+        </div>
+        <div class="tk-info-item" style="grid-column:1/-1">
+          <div class="tk-info-label">Train Name</div>
+          <div class="tk-info-val" style="font-size:.9rem">${train.trainName}</div>
+        </div>
+        ${mealPref ? `<div class="tk-info-item" style="grid-column:1/-1;background:#f0fdf4">
+          <div class="tk-info-label" style="color:#15803d">Onboard Meal</div>
+          <div class="tk-info-val" style="color:#15803d">🍱 ${mealPref} Meal Included</div>
+        </div>` : ''}
+      </div>
+
+      <div class="tk-seats-title">Seat(s) Booked</div>
+      <div class="tk-seat-tags">
+        ${seats.map(b => `<span class="tk-seat-tag">${b.seatNumber}</span>`).join('')}
+      </div>
+
+      <div class="tk-fare-row">
+        <div>
+          <div class="tk-fare-label">Base Fare</div>
+          <div style="font-size:.82rem;color:#94a3b8">₹${baseFare}${foodFare > 0 ? ` + ₹${foodFare} meal` : ''}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="tk-fare-label">Total Paid</div>
+          <div class="tk-fare-amt">₹${totalFare}</div>
+        </div>
+      </div>
+
+      <div class="tk-bottom">
+        <div class="tk-qr">${generateQRSVG(pnr + train.trainNumber)}</div>
+        <div class="tk-barcode-wrap">
+          ${generateBarcodeSVG(pnr)}
+          <div class="tk-barcode-num">${pnr}</div>
+          <div class="tk-footer-note">This is a digital ticket. Please carry a valid government ID.<br>Valid for travel on booking date only.</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('ticketOverlay').classList.add('show');
+}
+
+function closeTicket(e) {
+  if (e && e.target !== document.getElementById('ticketOverlay')) return;
+  closeTicketModal();
+}
+function closeTicketModal() {
+  document.getElementById('ticketOverlay').classList.remove('show');
+}
+
+async function downloadTicketPDF() {
+  const card = document.getElementById('ticketCard');
+  const btn = document.querySelector('.ticket-dl-btn');
+  btn.textContent = '⏳ Generating PDF...';
+  btn.disabled = true;
+  try {
+    const canvas = await html2canvas(card, { scale: 3, useCORS: true, backgroundColor: '#ffffff' });
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' });
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = (canvas.height * pdfW) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+    const pnr = _ticketSeats?.[0]?.bookingRef || 'TICKET';
+    pdf.save(`TrackMyTrain_${pnr}.pdf`);
+    showToast('✅ PDF ticket downloaded!', 'arrival');
+  } catch(e) {
+    showToast('⚠️ PDF generation failed: ' + e.message, 'delay');
+  } finally {
+    btn.textContent = '⬇️ Download PDF Ticket';
+    btn.disabled = false;
+  }
+}
+
+// ─── GROUP BOOKING ACTIONS (Cancel All / Delete All) ────
+async function cancelGroupBooking(seatIds) {
+  if (!seatIds || !seatIds.length) return;
+  const plural = seatIds.length > 1 ? `all ${seatIds.length} tickets` : 'this ticket';
+  if (!confirm(`Cancel ${plural} in this booking? This cannot be undone.`)) return;
+  let failed = 0;
+  for (const sid of seatIds) {
+    try {
+      const res = await fetch(`${API}/seats/${sid}/cancel`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) failed++;
+    } catch(e) { failed++; }
+  }
+  if (failed > 0) showToast(`⚠️ ${failed} seat(s) could not be cancelled`, 'delay');
+  else showToast(`✅ All tickets cancelled successfully`, 'arrival');
+  loadBookings();
+  updateBadge();
+}
+
+async function deleteGroupBooking(seatIds) {
+  if (!seatIds || !seatIds.length) return;
+  if (!confirm(`Remove this entire booking from your history? This cannot be undone.`)) return;
+  let failed = 0;
+  for (const sid of seatIds) {
+    try {
+      const res = await fetch(`${API}/auth/bookings/${sid}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) failed++;
+    } catch(e) { failed++; }
+  }
+  if (failed > 0) showToast(`⚠️ ${failed} entry(s) could not be removed`, 'delay');
+  else showToast(`🗑️ Booking removed from history`, 'info');
+  loadBookings();
+}
+
+// ─── DETAIL + LEAFLET MAP ────
+let leafletMap = null; // keep reference so we can destroy & recreate
+let trainMarkerInterval = null;
+
+async function showDetail(id, fromBooking = false) {
+  try {
+    const r = await fetch(`${API}/trains/${id}`); const t = await r.json(); curTrainData = t;
+    document.getElementById('sosInfo').innerHTML = `🚆 <b>${t.trainName}</b> (#${t.trainNumber})<br>📍 Current: <b>${t.currentStation||'N/A'}</b> | Status: <b>${t.status}</b>`;
+
+    // Build intermediate stops based on route (using our city knowledge)
+    const stops = buildRouteStops(t);
+    const foodStations = ['Chennai','Mumbai','New Delhi','Kolkata','Bangalore'];
+
+    document.getElementById('pg-detail').innerHTML = `
+      <button class="btn btn-outline btn-sm" onclick="navigateTo('home')" style="margin-bottom:1rem">← Back</button>
+      <div class="detail-card">
+        <h2 style="color:var(--navy);margin-bottom:.25rem">🚆 ${t.trainName}</h2>
+        <div style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">#${t.trainNumber} &nbsp;•&nbsp; ${t.trainType} &nbsp;•&nbsp; ${t.source} → ${t.destination}</div>
+
+        <!-- Live Stats Strip -->
+        <div class="live-strip">
+          <div class="live-item"><div class="live-label">Current Station</div><div class="live-val orange">📍 ${t.currentStation||'En Route'}</div></div>
+          <div class="live-item"><div class="live-label">Status</div><div class="live-val ${t.status==='Running'?'green':t.status==='Delayed'?'red':'orange'}">${t.status}</div></div>
+          <div class="live-item"><div class="live-label">Delay</div><div class="live-val ${t.delayMinutes>0?'red':'green'}">${t.delayMinutes>0?'+'+t.delayMinutes+' min':'On Time'}</div></div>
+          <div class="live-item"><div class="live-label">Seats Left</div><div class="live-val">${t.capacity?.available||0}/${t.capacity?.total||0}</div></div>
+        </div>
+
+        <!-- Leaflet Map -->
+        <div id="routeMap" class="map-canvas" style="height:380px;width:100%;background:#e2e8f0;display:block;color:var(--muted);text-align:center;line-height:380px;">Loading map...</div>
+        <div style="font-size:.72rem;color:var(--muted);text-align:right;margin-top:-.4rem;margin-bottom:.5rem">Map © OpenStreetMap contributors</div>
+
+        <!-- Route Details -->
+        <h3 style="color:var(--navy);margin:1rem 0 .5rem">🚦 Station Stops</h3>
+        <div class="stops-list">
+          ${stops.map((s,i) => {
+            const isCurrent = s.name === (t.currentStation||'').split(' (')[0];
+            const isDone = i < stops.findIndex(x=>x.name===(t.currentStation||'').split(' (')[0]);
+            const hasFood = foodStations.some(f=>s.name.includes(f));
+            const dotClass = isCurrent?'stop-dot stop-current':isDone?'stop-dot stop-done':'stop-dot stop-upcoming';
+            return `<div class="stop-item">
+              <div class="${dotClass} ${hasFood?'stop-food':''}"></div>
+              <div style="flex:1">
+                <div style="font-weight:${isCurrent?700:500};color:${isCurrent?'var(--orange)':isDone?'var(--muted)':'var(--text)'}">${s.name} ${isCurrent?'<span style="font-size:.7rem;background:#fff7ed;color:var(--orange);padding:.1rem .4rem;border-radius:10px">Current</span>':''}</div>
+                <div style="font-size:.72rem;color:var(--muted)">${s.label||''} ${hasFood?'🍽️ Food Court':''}</div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+
+        <!-- Route Food Court Section -->
+        <h3 style="color:var(--navy);margin:1.5rem 0 .5rem">🍽️ Food Available on this Route</h3>
+        <div id="routeFoodContainer" style="display:flex;gap:1rem;overflow-x:auto;padding-bottom:.5rem;scrollbar-width:none">
+          <p style="color:var(--muted);font-size:.85rem">Loading food options...</p>
+        </div>
+
+        ${!fromBooking ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin:1rem 0">
+          <div class="dg-item"><div class="dg-label">Train Number</div>${t.trainNumber}</div>
+          <div class="dg-item"><div class="dg-label">Type</div>${t.trainType}</div>
+          <div class="dg-item"><div class="dg-label">From</div>${t.source}</div>
+          <div class="dg-item"><div class="dg-label">To</div>${t.destination}</div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:.5rem;padding:.85rem" onclick="loadSeats('${t._id}')">&#x1FA91; Select Seats &amp; Book</button>
+        ` : ``}
+      </div>`;
+    navigateTo('detail');
+    loadRouteFood(stops);
+    // Wait for DOM to fully paint before initializing Leaflet
+    setTimeout(() => {
+      if (typeof L === 'undefined') {
+        document.getElementById('routeMap').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:#0f172a;color:#fff;border-radius:8px"><p>⚠️ Map library failed to load. Please check your internet connection and refresh.</p></div>';
+        return;
+      }
+      drawLeafletMap(t, stops);
+    }, 500);
+  } catch(e){ alert('Failed to load train details'); }
+}
+
+// ─── CITY COORDINATES (real lat/lng for Leaflet) ────
+const CITY_COORDS = {
+  'Chennai':          [13.0827, 80.2707],
+  'Madurai':          [9.9252, 78.1198],
+  'Coimbatore':       [11.0168, 76.9558],
+  'Salem':            [11.6643, 78.1460],
+  'Tiruchirappalli':  [10.7905, 78.7047],
+  'Erode':            [11.3410, 77.7172],
+  'Vellore':          [12.9165, 79.1325],
+  'Thanjavur':        [10.7870, 79.1378],
+  'Tirunelveli':      [8.7139, 77.7567],
+  'Nagercoil':        [8.1833, 77.4119],
+  'Kanyakumari':      [8.0883, 77.5385],
+  'Kanchipuram':      [12.8185, 79.7037],
+  'Puducherry':       [11.9416, 79.8083],
+  'Mumbai':           [19.0760, 72.8777],
+  'New Delhi':        [28.6139, 77.2090],
+  'Kolkata':          [22.5726, 88.3639],
+  'Bangalore':        [12.9716, 77.5946],
+  'Hyderabad':        [17.3850, 78.4867],
+  'Jaipur':           [26.9124, 75.7873],
+  'Bhopal':           [23.2599, 77.4126],
+  'Thiruvananthapuram':[8.5241, 76.9366],
+  'Kochi':            [9.9312, 76.2673],
+  'Allahabad':        [25.4358, 81.8464],
+  'Prayagraj':        [25.4358, 81.8464],
+  'Lucknow':          [26.8467, 80.9462],
+  'Varanasi':         [25.3176, 82.9739],
+  'Patna':            [25.5941, 85.1376],
+  'Guwahati':         [26.1445, 91.7362],
+  'Nagpur':           [21.1458, 79.0882],
+  'Pune':             [18.5204, 73.8567],
+  'Surat':            [21.1702, 72.8311],
+  'Ahmedabad':        [23.0225, 72.5714],
+  'Agra':             [27.1767, 78.0081],
+  'Jodhpur':          [26.2389, 73.0243],
+  'Amritsar':         [31.6340, 74.8723],
+  'Chandigarh':       [30.7333, 76.7794],
+  'Shimla':           [31.1048, 77.1734],
+  'Vijayawada':       [16.5062, 80.6480],
+  'Visakhapatnam':    [17.6868, 83.2185],
+  'Mangalore':        [12.9141, 74.8560],
+  'Mysore':           [12.2958, 76.6394],
+  'Hubli':            [15.3647, 75.1240],
+  'Goa':              [15.2993, 74.1240],
+  'Bhubaneswar':      [20.2961, 85.8245],
+  'Raipur':           [21.2514, 81.6296],
+  'Ranchi':           [23.3441, 85.3096],
+  'Dehradun':         [30.3165, 78.0322],
+};
+
+// Build intermediate stops for a route
+function buildRouteStops(train) {
+  const src = train.source.split(' (')[0].trim();
+  const dst = train.destination.split(' (')[0].trim();
+  const current = (train.currentStation||'').split(' (')[0].trim();
+
+  // Known corridor stops
+  const corridors = [
+    { cities: ['Chennai','Bangalore'], stops: ['Chennai','Katpadi','Jolarpettai','Bangalore'] },
+    { cities: ['Chennai','Mumbai'], stops: ['Chennai','Vijayawada','Hyderabad','Pune','Mumbai'] },
+    { cities: ['Chennai','New Delhi'], stops: ['Chennai','Vijayawada','Hyderabad','Nagpur','Bhopal','Agra','New Delhi'] },
+    { cities: ['Mumbai','New Delhi'], stops: ['Mumbai','Surat','Ahmedabad','Vadodara','Jaipur','New Delhi'] },
+    { cities: ['Kolkata','New Delhi'], stops: ['Kolkata','Patna','Allahabad','Agra','New Delhi'] },
+    { cities: ['Chennai','Madurai'], stops: ['Chennai','Villupuram','Trichy','Dindigul','Madurai'] },
+    { cities: ['Bangalore','Hyderabad'], stops: ['Bangalore','Kolar','Krishnarajapuram','Hyderabad'] },
+    { cities: ['Mumbai','Pune'], stops: ['Mumbai','Thane','Pune'] },
+    { cities: ['New Delhi','Amritsar'], stops: ['New Delhi','Ambala','Ludhiana','Amritsar'] },
+    { cities: ['Chennai','Coimbatore'], stops: ['Chennai','Salem','Erode','Coimbatore'] },
+    { cities: ['Hyderabad','Mumbai'], stops: ['Hyderabad','Pune','Mumbai'] },
+  ];
+
+  let stops = null;
+  for (const c of corridors) {
+    if ((c.cities.includes(src)||c.cities[0]===src) && (c.cities.includes(dst)||c.cities[c.cities.length-1]===dst)) {
+      stops = c.stops; break;
+    }
+    if ((c.cities.includes(dst)||c.cities[0]===dst) && (c.cities.includes(src)||c.cities[c.cities.length-1]===src)) {
+      stops = [...c.stops].reverse(); break;
+    }
+  }
+  if (!stops) stops = [src, dst]; // fallback: just source & dest
+
+  return stops.map((name, i) => ({
+    name,
+    label: i === 0 ? 'Origin' : i === stops.length-1 ? 'Destination' : 'Intermediate',
+    coords: CITY_COORDS[name] || null,
+  }));
+}
+
+// ─── LEAFLET MAP ────
+function drawLeafletMap(train, stops) {
+  try {
+    const container = document.getElementById('routeMap');
+    if (!container) return;
+
+    // Destroy previous map safely (if container was overwritten by innerHTML, remove() can throw an error)
+    if (leafletMap) {
+      try { leafletMap.remove(); } catch(e) { console.warn("Could not cleanly remove old map", e); }
+      leafletMap = null;
+    }
+    if (trainMarkerInterval) { clearInterval(trainMarkerInterval); trainMarkerInterval = null; }
+
+    // Strip out the loading text and flex/line-height classes that centered it, so Leaflet gets a clean block container
+    container.innerHTML = ''; 
+    container.style.lineHeight = 'normal';
+    container.style.textAlign = 'left';
+
+    const src = train.source.split(' (')[0].trim();
+    const dst = train.destination.split(' (')[0].trim();
+    const srcCoords = CITY_COORDS[src] || [20.5937, 78.9629];
+    const dstCoords = CITY_COORDS[dst] || [20.5937, 78.9629];
+
+  // Map center = midpoint between src and dst
+  const centerLat = (srcCoords[0] + dstCoords[0]) / 2;
+  const centerLng = (srcCoords[1] + dstCoords[1]) / 2;
+
+  // Init Leaflet
+  leafletMap = L.map('routeMap', { zoomControl: true, attributionControl: false }).setView([centerLat, centerLng], 5);
+
+  // CartoDB Dark Matter tiles (Perfect for dark themes, very reliable)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 18, attribution: '© OpenStreetMap, © CARTO'
+  }).addTo(leafletMap);
+
+  // Collect valid stop coordinates
+  const validStops = stops.filter(s => s.coords);
+  const routeCoords = validStops.length >= 2
+    ? validStops.map(s => s.coords)
+    : [srcCoords, dstCoords];
+
+  // Draw dashed grey full route line
+  L.polyline(routeCoords, { color: '#94a3b8', weight: 3, dashArray: '8 6', opacity: 0.6 }).addTo(leafletMap);
+
+  // Figure out progress along route
+  const curStation = (train.currentStation || src).split(' (')[0].trim();
+  const curIdx = validStops.findIndex(s => s.name === curStation);
+  const progressIdx = curIdx >= 0 ? curIdx : 0;
+
+  // Draw completed route in orange
+  if (progressIdx > 0) {
+    const doneCoords = routeCoords.slice(0, progressIdx + 1);
+    L.polyline(doneCoords, { color: '#f97316', weight: 4, opacity: 0.95 }).addTo(leafletMap);
+  }
+
+  // Food court stations set
+  const foodStations = new Set(['Chennai','Mumbai','New Delhi','Kolkata','Bangalore']);
+
+  // Custom icons
+  const makeIcon = (emoji, color, size=32) => L.divIcon({
+    className: '',
+    html: `<div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${size*0.5}px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer">${emoji}</div>`,
+    iconSize: [size, size], iconAnchor: [size/2, size/2], popupAnchor: [0, -size/2]
+  });
+
+  const trainIcon = makeIcon('🚆', '#f97316', 38);
+  const srcIcon = makeIcon('🟢', '#16a34a', 28);
+  const dstIcon = makeIcon('🏁', '#dc2626', 28);
+  const midIcon = makeIcon('📍', '#2563eb', 22);
+  const foodIcon = makeIcon('🍽️', '#ea580c', 26);
+
+  // Station markers
+  validStops.forEach((stop, i) => {
+    if (!stop.coords) return;
+    const isFirst = i === 0, isLast = i === validStops.length - 1;
+    const isCurrent = stop.name === curStation;
+    const hasFood = foodStations.has(stop.name);
+
+    let icon = hasFood ? foodIcon : midIcon;
+    if (isFirst) icon = srcIcon;
+    if (isLast) icon = dstIcon;
+
+    const marker = L.marker(stop.coords, { icon }).addTo(leafletMap);
+
+    const popupContent = `
+      <div style="font-family:'Inter',sans-serif">
+        <div style="font-weight:700;font-size:.9rem;margin-bottom:.3rem">${isFirst?'🟢':isLast?'🏁':'📍'} ${stop.name}</div>
+        <div style="font-size:.75rem;color:#64748b">${stop.label}</div>
+        ${isCurrent ? '<div style="margin-top:.3rem;color:#f97316;font-weight:700">🚆 Train is here now</div>' : ''}
+        ${hasFood ? '<div style="margin-top:.3rem;color:#ea580c">🍽️ Food Court Available</div>' : ''}
+      </div>`;
+    marker.bindPopup(popupContent, { className: 'station-popup', maxWidth: 220 });
+  });
+
+  // ─── Animated train marker ────
+  const trainPos = progressIdx >= 0 && progressIdx < routeCoords.length
+    ? routeCoords[progressIdx]
+    : routeCoords[0];
+  const trainMarker = L.marker(trainPos, { icon: trainIcon, zIndexOffset: 1000 }).addTo(leafletMap);
+
+  const popupHtml = `
+    <div style="font-family:'Inter',sans-serif">
+      <div style="font-weight:700;font-size:.9rem;margin-bottom:.25rem">🚆 ${train.trainName}</div>
+      <div style="font-size:.78rem">#${train.trainNumber}</div>
+      <div style="margin-top:.3rem;font-size:.8rem">📍 <b>${train.currentStation||'En Route'}</b></div>
+      <div style="color:${train.status==='Delayed'?'#dc2626':'#16a34a'};font-weight:700;font-size:.8rem">${train.status}${train.delayMinutes?' (+'+train.delayMinutes+' min)':''}</div>
+    </div>`;
+  trainMarker.bindPopup(popupHtml, { className: 'train-popup', maxWidth: 240 }).openPopup();
+
+  // Smooth animated movement between current and next stop
+  // Real trains travel at ~60-80 km/h; segments are 100-400 km apart.
+  // We simulate this by advancing ~0.0001% of the segment per 100ms tick
+  // → one full segment takes ~100,000 ticks × 100ms = ~2.8 hours (realistic)
+  // For a visible but believable simulation we use 0.000015 per tick
+  // → completes one segment in ~18 minutes (compressed real-time feel)
+  if (progressIdx < routeCoords.length - 1) {
+    const nextCoord = routeCoords[progressIdx + 1];
+    let segProgress = 0;
+    trainMarkerInterval = setInterval(() => {
+      if (!leafletMap) { clearInterval(trainMarkerInterval); return; }
+      segProgress += 0.000015; // very slow realistic pace
+      if (segProgress > 1) segProgress = 0;
+      const lat = trainPos[0] + (nextCoord[0] - trainPos[0]) * segProgress;
+      const lng = trainPos[1] + (nextCoord[1] - trainPos[1]) * segProgress;
+      trainMarker.setLatLng([lat, lng]);
+    }, 100);
+  }
+
+  // Auto-fit map to show all route stops
+  if (routeCoords.length >= 2) {
+    leafletMap.fitBounds(L.latLngBounds(routeCoords), { padding: [40, 40] });
+  }
+
+  // Force Leaflet to recalculate container size (fixes blank/gray map)
+  // Call invalidateSize at multiple intervals to guarantee tiles load
+  [200, 500, 1000, 2000].forEach(delay => {
+    setTimeout(() => {
+      if (leafletMap) {
+        leafletMap.invalidateSize();
+        if (routeCoords.length >= 2) {
+          leafletMap.fitBounds(L.latLngBounds(routeCoords), { padding: [40, 40] });
+        }
+      }
+    }, delay);
+  });
+  } catch(err) {
+    console.error("Map initialization failed:", err);
+    const container = document.getElementById('routeMap');
+    if (container) container.innerHTML = `<div style="padding:2rem;color:red;text-align:center">Error loading map: ${err.message}</div>`;
+  }
+}
+
+async function loadRouteFood(stops) {
+  const container = document.getElementById('routeFoodContainer');
+  try {
+    const stationNames = stops.map(s => s.name);
+    const r = await fetch(`${API}/food`);
+    const allFood = await r.json();
+    allFoodItems = allFood; // Keep cache updated
+    const routeFood = allFood.filter(f => stationNames.includes(f.station));
+
+    if (!routeFood.length) {
+      container.innerHTML = '<p style="color:var(--muted);font-size:.85rem">No food courts available on this specific route yet.</p>';
+      return;
+    }
+
+    container.innerHTML = routeFood.map(f => `
+      <div class="food-card" style="min-width:180px;max-width:180px;flex-shrink:0">
+        <div class="food-card-img" style="height:80px;font-size:2rem">${f.emoji||'🍽️'}</div>
+        <div class="food-card-body" style="padding:.5rem">
+          <div class="food-card-name" style="font-size:.8rem">${f.name}</div>
+          <div style="font-size:.7rem;color:var(--muted)">📍 ${f.station}</div>
+          <div class="food-price" style="font-size:.85rem;margin-top:.25rem">₹${f.price}</div>
+          <button class="add-to-cart-btn" style="padding:.3rem;font-size:.7rem" onclick="event.stopPropagation(); addToCartFromRoute('${f._id}')">Order</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    container.innerHTML = '<p style="color:var(--muted);font-size:.85rem">Error loading food.</p>';
+  }
+}
+
+function addToCartFromRoute(id) {
+    const f = allFoodItems.find(x => x._id === id);
+    if (!f) return;
+    addToCart(f._id, f.name.replace(/'/g,"\\'"), f.price, f.emoji||'🍽️', f.station);
+    openCart();
+}
+
+// ─── SEATS ────
+async function loadSeats(trainId) {
+  try {
+    curTrainId = trainId; selectedSeats = [];
+    const r = await fetch(`${API}/seats/${trainId}/all`); const d = await r.json();
+    trainSeats = d.coaches;
+    document.getElementById('seatStats').innerHTML = `
+      <div class="dg-item"><div class="dg-label">Available</div>✅ ${d.summary.available}</div>
+      <div class="dg-item"><div class="dg-label">Booked</div>❌ ${d.summary.booked}</div>`;
+    renderCoachTabs(Object.keys(trainSeats)); renderSeats('1'); navigateTo('seats');
+  } catch(e){ alert('Failed to load seats'); }
+}
+function renderCoachTabs(coaches) {
+  document.getElementById('coachTabs').innerHTML = coaches.map(c =>
+    `<button class="coach-tab ${curCoach===c?'active':''}" onclick="renderSeats('${c}')">${c<=4?'Gen':''}${c>4&&c<=8?'AC':''}${c>8?'SL':''} C${c}</button>`).join('');
+}
+function renderSeats(coach) {
+  curCoach = coach; const seats = trainSeats[coach]||[];
+  document.getElementById('seatGrid').innerHTML = seats.map(s => {
+    const sel = selectedSeats.find(x=>x._id===s._id), bk = s.status!=='Available';
+    const cls = sel ? 'selected' : bk ? 'booked' : 'avail';
+    return `<button class="seat-btn ${cls}" ${bk?'disabled':''} onclick="toggleSeat('${s._id}',${s.fare},'${s.seatNumber}',${bk})">${s.seatColumn}${s.seatRow}</button>`;
+  }).join('');
+  renderCoachTabs(Object.keys(trainSeats)); updateSeatSummary();
+}
+function toggleSeat(id,fare,num,bk) {
+  if (bk) return;
+  const i = selectedSeats.findIndex(s=>s._id===id);
+  if (i>-1) selectedSeats.splice(i,1); else selectedSeats.push({_id:id,fare,seatNumber:num});
+  renderSeats(curCoach);
+}
+function updateSeatSummary() {
+  const foodPref = document.querySelector('input[name="onboardFood"]:checked')?.value || 'None';
+  const foodCost = foodPref === 'Veg' ? 150 : foodPref === 'Non-Veg' ? 200 : 0;
+  
+  const baseT = selectedSeats.reduce((s,x)=>s+x.fare,0);
+  const totalFoodT = foodCost * selectedSeats.length;
+  const t = baseT + totalFoodT;
+  
+  document.getElementById('seatSummary').innerHTML = selectedSeats.length
+    ? `<b>Seats:</b> ${selectedSeats.map(s=>s.seatNumber).join(', ')} | <b>Meal:</b> ${foodPref!=='None'?foodPref:'None'} | <b>Total:</b> ₹${t}`
+    : '<span style="color:var(--muted)">No seats selected</span>';
+}
+function clearSeats() { selectedSeats=[]; document.querySelector('input[name="onboardFood"][value="None"]').checked=true; renderSeats(curCoach); }
+async function confirmBooking() {
+  if (!selectedSeats.length) return alert('Select seats first');
+  const onboardFood = document.querySelector('input[name="onboardFood"]:checked')?.value || 'None';
+  // Generate a shared booking reference (PNR) for all seats in this session
+  const bookingRef = 'PNR' + Date.now().toString(36).toUpperCase();
+  try {
+    for (const s of selectedSeats) {
+        await fetch(`${API}/seats/${s._id}/book`, {
+            method:'POST',
+            headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+            body: JSON.stringify({ onboardFood, bookingRef })
+        });
+    }
+    const foodCost = onboardFood === 'Veg' ? 150 : onboardFood === 'Non-Veg' ? 200 : 0;
+    const total = selectedSeats.reduce((s,x)=>s+x.fare,0) + (foodCost * selectedSeats.length);
+    showToast(`🎟️ Booking Confirmed! PNR: ${bookingRef} | Total: ₹${total}`, 'arrival');
+    selectedSeats=[]; navigateTo('bookings'); loadBookings();
+  } catch(e){ alert('Booking failed'); }
+}
+
+// ─── PROFILE ────
+async function loadProfile() {
+  try {
+    const r = await fetch(`${API}/auth/profile`,{headers:{'Authorization':'Bearer '+token}});
+    const u = await r.json(); user = u;
+    document.getElementById('profileContent').innerHTML = `
+      <div class="prof-header"><div class="prof-avatar">👤</div><div class="prof-name">${u.firstName} ${u.lastName}</div><div class="prof-email">${u.email}</div><div style="margin-top:.5rem;font-size:.8rem;background:rgba(255,255,255,.15);display:inline-block;padding:.2rem .6rem;border-radius:12px">${u.role==='admin'?'🛡️ Admin':'👤 User'}</div></div>
+      <div class="prof-section"><h3>Account Info</h3><p><b>Phone:</b> ${u.phoneNumber||'Not set'}</p><p><b>Member Since:</b> ${new Date(u.createdAt).toLocaleDateString()}</p></div>
+      <div class="prof-section"><h3>Preferences</h3><label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" ${u.preferences?.notifications!==false?'checked':''} onchange="updatePrefs(this.checked)"> Enable Notifications</label></div>
+      <button class="btn btn-danger" style="width:100%;margin-top:.5rem" onclick="logout()">🚪 Logout</button>`;
+  } catch(e){}
+}
+async function updatePrefs(on) {
+  try { await fetch(`${API}/auth/profile`,{method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({preferences:{notifications:on}})}); } catch(e){}
+}
+
+// ─── NOTIFICATIONS ────
+async function loadNotifications() {
+  try {
+    const r = await fetch(`${API}/notifications`,{headers:{'Authorization':'Bearer '+token}});
+    const n = await r.json();
+    document.getElementById('notifList').innerHTML = n.length ? n.map(x=>`
+      <div class="notif-item ${x.type==='delay'?'delay':'arrival'}" style="position:relative">
+        <button onclick="deleteNotification('${x._id}')" style="position:absolute;top:.5rem;right:.5rem;background:none;border:none;cursor:pointer;font-size:1rem;color:var(--muted);opacity:.6" title="Delete">✕</button>
+        <b>${x.title}</b><br><span>${x.message}</span>
+        <div class="notif-time">${new Date(x.createdAt).toLocaleString()}</div>
+      </div>`).join('') : '<p style="color:var(--muted);text-align:center;padding:2rem">No notifications yet</p>';
+  } catch(e){}
+}
+async function deleteNotification(id) {
+  try {
+    await fetch(`${API}/notifications/${id}`, { method:'DELETE', headers:{'Authorization':'Bearer '+token} });
+    loadNotifications(); updateBadge();
+  } catch(e){}
+}
+async function clearAllNotifications() {
+  if (!confirm('Delete all notifications?')) return;
+  try {
+    await fetch(`${API}/notifications`, { method:'DELETE', headers:{'Authorization':'Bearer '+token} });
+    loadNotifications(); updateBadge();
+    showToast('All notifications cleared', 'info');
+  } catch(e){}
+}
+let lastUnreadCount = 0;
+function startNotifPoll() {
+  updateBadge(); setInterval(updateBadge, 30000);
+}
+async function updateBadge() {
+  try {
+    const r = await fetch(`${API}/notifications/unread-count`,{headers:{'Authorization':'Bearer '+token}});
+    const d = await r.json(); const dot = document.getElementById('notifDot');
+    if (d.unreadCount>0) { 
+        dot.textContent=d.unreadCount; dot.style.display='flex'; 
+        if (d.unreadCount > lastUnreadCount) {
+             showToast('🔔 You have a new Train Alert!', 'info');
+        }
+    } else {
+        dot.style.display='none';
+    }
+    lastUnreadCount = d.unreadCount;
+  } catch(e){}
+}
+function showToast(msg,type='info') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div'); t.className='toast '+(type==='delay'?'delay-toast':'arrival-toast');
+  t.textContent=msg; c.appendChild(t); setTimeout(()=>t.remove(),5000);
+}
+
+// ─── ADMIN ────
+// ─── ADMIN DASHBOARD ────
+let revenueChart = null, distributionChart = null;
+
+async function loadAdmin() {
+  if (!user || user.role !== 'admin') return navigateTo('home');
+  document.getElementById('adminUpdateTime').textContent = new Date().toLocaleTimeString();
+
+  try {
+    // 1. Fetch Basic Stats
+    const statsRes = await fetch(`${API}/admin/stats`, { headers: { 'Authorization': 'Bearer ' + token } });
+    const { stats, revenue } = await statsRes.json();
+    
+    document.getElementById('stat-revenue').textContent = `₹${revenue.totalRevenue.toLocaleString()}`;
+    document.getElementById('stat-trains').textContent = stats.activeTrains;
+    document.getElementById('stat-bookings').textContent = stats.totalBookings;
+    
+    const staffRes = await fetch(`${API}/admin/staff`, { headers: { 'Authorization': 'Bearer ' + token } });
+    const staffData = await staffRes.json();
+    document.getElementById('stat-staff').textContent = staffData.activeLocoPilots + staffData.onDutyGuards;
+
+    // 2. Fetch Analytics for Charts
+    const analyticsRes = await fetch(`${API}/admin/analytics`, { headers: { 'Authorization': 'Bearer ' + token } });
+    const analytics = await analyticsRes.json();
+    initAdminCharts(analytics);
+
+    // 3. Fetch Operations for Table
+    const opsRes = await fetch(`${API}/admin/operations`, { headers: { 'Authorization': 'Bearer ' + token } });
+    const trains = await opsRes.json();
+    renderOpsTable(trains);
+
+  } catch (e) {
+    console.error("Dashboard load failed:", e);
+    showToast("⚠️ Failed to load analytics data", "delay");
+  }
+}
+
+function initAdminCharts(data) {
+    const ctxRev = document.getElementById('revenueChart')?.getContext('2d');
+    const ctxDist = document.getElementById('distributionChart')?.getContext('2d');
+    if (!ctxRev || !ctxDist) return;
+
+    // Destroy old charts if they exist
+    if (revenueChart) revenueChart.destroy();
+    if (distributionChart) distributionChart.destroy();
+
+    // Revenue vs Expenses Line Chart
+    revenueChart = new Chart(ctxRev, {
+        type: 'line',
+        data: {
+            labels: data.trend.map(d => d.date),
+            datasets: [
+                {
+                    label: 'Revenue',
+                    data: data.trend.map(d => d.revenue),
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37,99,235,0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3
+                },
+                {
+                    label: 'Expenses',
+                    data: data.trend.map(d => d.expense),
+                    borderColor: '#94a3b8',
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    fill: false
+                }
+            ]
+        }
+    });
+
+    // Class Distribution Doughnut
+    distributionChart = new Chart(ctxDist, {
+        type: 'doughnut',
+        data: {
+            labels: data.distribution.map(d => d._id),
+            datasets: [{
+                data: data.distribution.map(d => d.count),
+                backgroundColor: ['#1e293b', '#2563eb', '#16a34a'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10, weight: 'bold' } } }
+            }
+        }
+    });
+}
+
+// ─── ADMIN FLEET ────
+async function loadAdminTrains() {
+  try {
+    const r = await fetch(`${API}/trains`);
+    const trains = await r.json();
+    const table = document.getElementById('fullFleetTable');
+    if (!table) return;
+    table.innerHTML = trains.map(t => `
+        <tr>
+            <td><b>#${t.trainNumber}</b></td>
+            <td>${t.trainName}</td>
+            <td><div style="font-size:.75rem">${t.source} → ${t.destination}</div></td>
+            <td><span class="badge-sm st-${t.status}">${t.status}</span></td>
+            <td>
+                <button class="btn btn-sm btn-outline" onclick="editTrain('${t._id}')">Edit</button>
+                <button class="btn btn-sm btn-danger" style="padding:.2rem .5rem" onclick="deleteTrain('${t._id}')">🗑</button>
+            </td>
+        </tr>
+    `).join('');
+  } catch(e){}
+}
+
+function editTrain(id) { alert('Edit Train ID: ' + id + '\n(Full CRUD UI coming in next update)'); }
+function deleteTrain(id) { if(confirm('Delete train ' + id + '?')) alert('Train deleted'); }
+function showAddTrainModal() { alert('Add New Train Modal\n(Form UI coming in next update)'); }
+
+// ─── ADMIN REVENUE ────
+let monRevChart = null, servRevChart = null;
+async function loadAdminRevenue() {
+  try {
+    const res = await fetch(`${API}/admin/analytics`, { headers: { 'Authorization': 'Bearer ' + token } });
+    const data = await res.json();
+    initRevenueCharts(data);
+    
+    // Recent transactions mock
+    document.getElementById('recentTransactionsList').innerHTML = data.trend.slice(0,5).map(t => `
+        <div style="display:flex;justify-content:space-between;padding:.75rem;border-bottom:1px solid var(--border)">
+            <div>
+                <div style="font-weight:700;font-size:.85rem">📅 Revenue Entry - ${t.date}</div>
+                <div style="font-size:.75rem;color:var(--muted)">System generated periodic aggregate</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-weight:800;color:var(--green)">+ ₹${t.revenue}</div>
+                <div style="font-size:.72rem;color:var(--red)">Exp: ₹${t.expense}</div>
+            </div>
+        </div>
+    `).join('');
+  } catch(e){}
+}
+
+function initRevenueCharts(data) {
+    const ctxMon = document.getElementById('monthlyRevenueChart')?.getContext('2d');
+    const ctxServ = document.getElementById('serviceRevenueChart')?.getContext('2d');
+    if (!ctxMon || !ctxServ) return;
+
+    if (monRevChart) monRevChart.destroy();
+    if (servRevChart) servRevChart.destroy();
+
+    monRevChart = new Chart(ctxMon, {
+        type: 'bar',
+        data: {
+            labels: data.trend.map(d => d.date),
+            datasets: [{
+                label: 'Revenue',
+                data: data.trend.map(d => d.revenue),
+                backgroundColor: '#2563eb',
+                borderRadius: 4
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    servRevChart = new Chart(ctxServ, {
+        type: 'pie',
+        data: {
+            labels: ['Tickets', 'Food Court', 'Onboard Meals'],
+            datasets: [{
+                data: [75, 15, 10], // Mock distribution for now
+                backgroundColor: ['#0f172a', '#2563eb', '#16a34a']
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+}
+
+function renderOpsTable(trains) {
+    const table = document.getElementById('adminLiveTrainsTable');
+    if (!table) return;
+    table.innerHTML = trains.map(t => `
+        <tr>
+            <td>
+                <div style="font-weight:700">#${t.trainNumber}</div>
+                <div style="font-size:.75rem;color:var(--muted)">${t.trainName}</div>
+            </td>
+            <td>
+                <div style="font-size:.82rem">📍 ${t.currentStation || t.source}</div>
+            </td>
+            <td>
+                <span class="badge-sm st-${t.status}">${t.status}</span>
+                ${t.delayMinutes > 0 ? `<div style="font-size:.7rem;color:var(--red);margin-top:.2rem">+${t.delayMinutes}m delay</div>` : ''}
+            </td>
+            <td>
+                <div style="width:100%;background:#e2e8f0;height:6px;border-radius:10px;margin-bottom:.3rem;overflow:hidden">
+                    <div style="width:${t.occupancy}%;background:${t.occupancy > 80 ? 'var(--red)' : 'var(--green)'};height:100%"></div>
+                </div>
+                <div style="font-size:.7rem;font-weight:700">${t.occupancy}% full</div>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline" style="padding:.2rem .5rem" onclick="showDetail('${t._id}')">Track</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// ─── SOS ────
+function openSOS() { document.getElementById('sosModal').classList.add('show'); }
+function closeSOS() { document.getElementById('sosModal').classList.remove('show'); }
+function triggerSOS(type) {
+  const nums = {police:'182',helpline:'139',medical:'108',women:'1091',fire:'101'};
+  const info = curTrainData ? `Train: ${curTrainData.trainName}, Station: ${curTrainData.currentStation||'Unknown'}` : 'No train selected';
+  alert(`🚨 EMERGENCY: Dialing ${nums[type]}\n\n${info}\n\nIn a real app, this would connect to emergency services and share your GPS location.`);
+  closeSOS();
+}
+
+// ═══════════════════════════════════════════════════
+// ─── FOOD COURT ─────────────────────────────────────
+// ═══════════════════════════════════════════════════
+let allFoodItems = [];
+let foodCart = [];
+let activeStation = 'All';
+let activeCategory = 'All';
+const FOOD_CATEGORIES = ['All','Breakfast','Main Course','Snacks','Beverages','Desserts','Thali'];
+
+// Load food page
+async function loadFoodCourt() {
+  try {
+    // Load all food items (public endpoint)
+    const r = await fetch(`${API}/food`);
+    allFoodItems = await r.json();
+
+    // Build station pills
+    const stations = ['All', ...new Set(allFoodItems.map(f => f.station))];
+    document.getElementById('foodStationBar').innerHTML = stations.map(s =>
+      `<button class="station-pill ${s===activeStation?'active':''}" onclick="setFoodStation('${s}')">${s==='All'?'🌐 All Stations':'📍 '+s}</button>`
+    ).join('');
+
+    // Build category pills
+    buildCatBar();
+
+    // Render items
+    filterFoodItems();
+
+    // Load user's orders if logged in
+    if (token) loadMyFoodOrders();
+
+    // Load trains into cart dropdown
+    populateCartTrains();
+  } catch(e) {
+    document.getElementById('foodGrid').innerHTML = '<p style="color:var(--muted);text-align:center;grid-column:1/-1;padding:2rem">⚠️ Could not load food items. Make sure backend is running.</p>';
+  }
+}
+
+function buildCatBar() {
+  document.getElementById('foodCatBar').innerHTML = FOOD_CATEGORIES.map(c =>
+    `<button class="cat-pill ${c===activeCategory?'active':''}" onclick="setFoodCategory('${c}')">${getCatEmoji(c)} ${c}</button>`
+  ).join('');
+}
+
+function getCatEmoji(cat) {
+  const map = { All:'🍽️', Breakfast:'🌅', 'Main Course':'🍛', Snacks:'🥟', Beverages:'🥤', Desserts:'🍮', Thali:'🫙' };
+  return map[cat] || '🍽️';
+}
+
+function setFoodStation(s) {
+  activeStation = s;
+  // Update pills
+  document.querySelectorAll('.station-pill').forEach(p => p.classList.toggle('active', p.textContent.includes(s==='All'?'All Stations':s)));
+  filterFoodItems();
+}
+
+function setFoodCategory(c) {
+  activeCategory = c;
+  buildCatBar();
+  filterFoodItems();
+}
+
+function filterFoodItems() {
+  const search = (document.getElementById('foodSearch')?.value||'').toLowerCase();
+  const vegOnly = document.getElementById('vegFilter')?.checked;
+  let items = allFoodItems;
+  if (activeStation !== 'All') items = items.filter(f => f.station === activeStation);
+  if (activeCategory !== 'All') items = items.filter(f => f.category === activeCategory);
+  if (vegOnly) items = items.filter(f => f.isVeg);
+  if (search) items = items.filter(f => f.name.toLowerCase().includes(search) || f.description.toLowerCase().includes(search) || f.hotelName.toLowerCase().includes(search));
+  renderFoodGrid(items);
+}
+
+function renderFoodGrid(items) {
+  const g = document.getElementById('foodGrid');
+  if (!items.length) {
+    g.innerHTML = '<p style="color:var(--muted);text-align:center;grid-column:1/-1;padding:3rem">🚫 No items found</p>';
+    return;
+  }
+  g.innerHTML = items.map(f => {
+    const stars = '⭐'.repeat(Math.round(f.hotelRating));
+    const inCart = foodCart.find(c => c._id === f._id);
+    return `
+    <div class="food-card">
+      <div class="food-card-img">
+        ${f.emoji||'🍽️'}
+        <div class="food-veg-badge ${f.isVeg?'veg-badge':'nveg-badge'}">${f.isVeg?'V':'N'}</div>
+      </div>
+      <div class="food-card-body">
+        <div class="food-hotel">🏨 ${f.hotelName} &nbsp;${stars}</div>
+        <div class="food-card-name">${f.name}</div>
+        <div class="food-card-desc">${f.description}</div>
+        <div class="food-tags">${(f.tags||[]).map(t=>`<span class="food-tag">${t}</span>`).join('')}</div>
+        <div class="food-card-meta">
+          <div>
+            <div class="food-price">₹${f.price}</div>
+            <div class="food-prep">⏱️ ${f.prepTime} min</div>
+          </div>
+          <div style="font-size:.75rem;color:var(--muted);text-align:right">
+            ${f.calories?`🔥 ${f.calories} cal`:''}
+          </div>
+        </div>
+        <button class="add-to-cart-btn" onclick="addToCart('${f._id}','${f.name.replace(/'/g,"\\'")}',${f.price},'${f.emoji||'🍽️'}','${f.station}')">
+          ${inCart ? `✅ In Cart (${inCart.qty})` : '🛒 Add to Cart'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── CART ────
+function addToCart(id, name, price, emoji, station) {
+  // Check station consistency
+  if (foodCart.length > 0 && foodCart[0].station !== station) {
+    if (!confirm(`Your cart has items from ${foodCart[0].station}. Clear and add from ${station}?`)) return;
+    foodCart = [];
+  }
+  const existing = foodCart.find(c => c._id === id);
+  if (existing) { existing.qty++; }
+  else { foodCart.push({ _id: id, name, price, emoji, station, qty: 1 }); }
+  updateCartUI();
+  filterFoodItems(); // re-render to show "In Cart"
+  showToast(`${emoji} ${name} added to cart!`, 'arrival');
+}
+
+function removeFromCart(id) {
+  foodCart = foodCart.filter(c => c._id !== id);
+  updateCartUI();
+  filterFoodItems();
+}
+
+function changeQty(id, delta) {
+  const item = foodCart.find(c => c._id === id);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) return removeFromCart(id);
+  updateCartUI();
+}
+
+function updateCartUI() {
+  const total = foodCart.reduce((s, c) => s + c.price * c.qty, 0);
+  const count = foodCart.reduce((s, c) => s + c.qty, 0);
+
+  // FAB
+  const fab = document.getElementById('cartFab');
+  fab.style.display = count > 0 ? 'flex' : 'none';
+  document.getElementById('cartFabCount').textContent = count;
+
+  // Cart panel items
+  const list = document.getElementById('cartItemsList');
+  if (foodCart.length === 0) {
+    list.innerHTML = '<p style="color:var(--muted);text-align:center;padding:2rem">Your cart is empty</p>';
+    document.getElementById('cartFooter').style.display = 'none';
+    return;
+  }
+  list.innerHTML = foodCart.map(c => `
+    <div class="cart-item">
+      <div>
+        <div class="ci-name">${c.emoji} ${c.name}</div>
+        <div class="ci-qty">
+          <button class="qty-btn" onclick="changeQty('${c._id}',-1)">−</button>
+          <span style="font-weight:700;font-size:.9rem">${c.qty}</span>
+          <button class="qty-btn" onclick="changeQty('${c._id}',1)">+</button>
+          <button class="qty-btn" onclick="removeFromCart('${c._id}')" style="color:var(--red)">🗑</button>
+        </div>
+      </div>
+      <div class="ci-price">₹${c.price * c.qty}</div>
+    </div>`).join('');
+  document.getElementById('cartTotalAmt').textContent = '₹' + total;
+  document.getElementById('cartFooter').style.display = 'block';
+}
+
+function openCart() { document.getElementById('cartPanel').classList.add('open'); }
+function closeCart() { document.getElementById('cartPanel').classList.remove('open'); }
+
+async function populateCartTrains() {
+  try {
+    const r = await fetch(`${API}/trains`);
+    const trains = await r.json();
+    const sel = document.getElementById('cartTrainSelect');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-- Select Train --</option>' +
+      trains.map(t => `<option value="${t._id}|${t.currentStation||t.source}">#${t.trainNumber} ${t.trainName} — ${t.source}→${t.destination}</option>`).join('');
+  } catch(e) {}
+}
+
+async function placeCartOrder() {
+  if (!token) { alert('Please login to place an order'); return; }
+  if (foodCart.length === 0) { alert('Your cart is empty'); return; }
+  const trainVal = document.getElementById('cartTrainSelect').value;
+  if (!trainVal) { alert('Please select your train'); return; }
+  const [trainId, station] = trainVal.split('|');
+  const note = document.getElementById('cartNote').value;
+
+  try {
+    const body = {
+      trainId,
+      station: foodCart[0].station,  // deliver to station where food is from
+      items: foodCart.map(c => ({ foodItemId: c._id, quantity: c.qty })),
+      deliveryNote: note,
+    };
+    const r = await fetch(`${API}/food/orders/place`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (data.order) {
+      const total = foodCart.reduce((s,c)=>s+c.price*c.qty,0);
+      foodCart = [];
+      updateCartUI();
+      closeCart();
+      filterFoodItems();
+      showOrderSuccess(data.order, total);
+      loadMyFoodOrders();
+    } else {
+      alert('Order failed: ' + (data.error || 'Unknown error'));
+    }
+  } catch(e) { alert('Order failed: ' + e.message); }
+}
+
+function showOrderSuccess(order, total) {
+  showToast(`✅ Order placed! ID: ${order.orderId} | ₹${total}`, 'arrival');
+  // Show order tracking in the page
+  document.getElementById('myOrdersSection').style.display = 'block';
+}
+
+// ─── MY FOOD ORDERS ────
+async function loadMyFoodOrders() {
+  if (!token) return;
+  try {
+    const r = await fetch(`${API}/food/orders/my`, { headers: { 'Authorization': 'Bearer ' + token } });
+    const orders = await r.json();
+    const sec = document.getElementById('myOrdersSection');
+    const list = document.getElementById('myOrdersList');
+    if (!orders || !orders.length) { sec.style.display = 'none'; return; }
+    sec.style.display = 'block';
+    const statusColors = { Pending:'#f97316', Confirmed:'#2563eb', Preparing:'#eab308', Ready:'#16a34a', Delivered:'#16a34a', Cancelled:'#dc2626' };
+    const statusEmoji = { Pending:'⏳', Confirmed:'✅', Preparing:'👨‍🍳', Ready:'🎉', Delivered:'🚂', Cancelled:'❌' };
+    list.innerHTML = orders.map(o => `
+      <div class="detail-card" style="margin-bottom:.75rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+          <div style="font-weight:700;color:var(--navy);font-size:.9rem">🧾 ${o.orderId}</div>
+          <div style="font-weight:700;font-size:.85rem;color:${statusColors[o.status]||'#64748b'}">${statusEmoji[o.status]||''} ${o.status}</div>
+        </div>
+        <div style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem">📍 ${o.station} &nbsp;|&nbsp; ${new Date(o.createdAt).toLocaleString()}</div>
+        <div style="font-size:.82rem;margin-bottom:.5rem">${o.items.map(i=>`${i.name} ×${i.quantity}`).join(', ')}</div>
+        <div style="font-weight:700;color:var(--orange)">Total: ₹${o.totalAmount}</div>
+        ${o.status !== 'Cancelled' && o.status !== 'Delivered' ? `<button class="btn btn-sm btn-outline" style="margin-top:.5rem;color:var(--red);border-color:var(--red)" onclick="cancelFoodOrder('${o._id}')">Cancel Order</button>` : ''}
+      </div>`).join('');
+  } catch(e) {}
+}
+
+async function cancelFoodOrder(id) {
+  if (!confirm('Cancel this food order?')) return;
+  try {
+    const r = await fetch(`${API}/food/orders/${id}/cancel`, {
+      method: 'PUT', headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await r.json();
+    if (data.order) { showToast('Order cancelled', 'delay'); loadMyFoodOrders(); }
+    else alert(data.error || 'Could not cancel');
+  } catch(e) { alert('Error: ' + e.message); }
+}
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════
+// ─── PWA — Service Worker + Install Prompt ──────────
+// ═══════════════════════════════════════════════════
+let _deferredInstallPrompt = null;
+let _swRegistration = null;
+
+// ── Register service worker with update detection ───
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg => {
+    _swRegistration = reg;
+    console.log('[PWA] Service Worker registered ✅');
+
+    // Detect new version available
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          document.getElementById('swUpdateBanner').classList.add('show');
+        }
+      });
+    });
+
+    // Auto-reload once new SW takes control
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) { refreshing = true; window.location.reload(); }
+    });
+  }).catch(err => console.warn('[PWA] SW failed:', err));
+}
+
+function applySwUpdate() {
+  if (_swRegistration && _swRegistration.waiting) {
+    _swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+  }
+  document.getElementById('swUpdateBanner').classList.remove('show');
+}
+
+// ── Capture "Add to Home Screen" prompt ────────────
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  // Show install banner on the login screen (after 1.5s delay)
+  if (!token) {
+    setTimeout(() => {
+      if (!localStorage.getItem('pwa-banner-dismissed')) {
+        document.getElementById('pwaInstallBanner').classList.add('show');
+      }
+    }, 1500);
+  } else {
+    document.getElementById('installTopbarBtn').classList.add('show');
+  }
+});
+
+// Hide install UI once the app is installed
+window.addEventListener('appinstalled', () => {
+  _deferredInstallPrompt = null;
+  document.getElementById('pwaInstallBanner').classList.remove('show');
+  document.getElementById('installTopbarBtn').classList.remove('show');
+  showToast('🎉 TrackMyTrain installed! Find it on your home screen.', 'arrival');
+});
+
+async function triggerPWAInstall() {
+  if (!_deferredInstallPrompt) {
+    alert('📱 To install:\nAndroid Chrome → Menu (⋮) → "Add to Home Screen"\niPhone Safari → Share (□↑) → "Add to Home Screen"');
+    return;
+  }
+  _deferredInstallPrompt.prompt();
+  const { outcome } = await _deferredInstallPrompt.userChoice;
+  _deferredInstallPrompt = null;
+  document.getElementById('pwaInstallBanner').classList.remove('show');
+  document.getElementById('installTopbarBtn').classList.remove('show');
+}
+
+function dismissPWABanner() {
+  document.getElementById('pwaInstallBanner').classList.remove('show');
+  localStorage.setItem('pwa-banner-dismissed', '1');
+}
+
+// ── Handle deep links from manifest shortcuts ───────
+// e.g. /?page=bookings when user taps the "My Bookings" shortcut
+(function() {
+  const page = new URLSearchParams(window.location.search).get('page');
+  if (page && ['bookings','home','food','saved','notifications','profile'].includes(page)) {
+    window.addEventListener('load', () => setTimeout(() => {
+      if (token) navigateTo(page);
+    }, 600));
+  }
+})();
+
+// Detect if already running as installed PWA
+if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) {
+  console.log('[PWA] Running as installed standalone app 📱');
+}
+</script>
+</body>
+</html>
