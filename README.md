@@ -5,6 +5,11 @@
 TrackMyTrain is a comprehensive real-time train tracking and information system providing users with accurate schedules, live location tracking, notifications, and offline access to essential travel data.
 
 ### 🎯 Core Features
+for running process for code USE BELOW!!!!!
+use the terminal 
+step1: cd backend
+step2: npm install
+Step3: npm run dev
 
 #### 1. **Train Information Module**
 - Train number, name, route details
